@@ -1,7 +1,7 @@
 ---
 name: normas
 #prettier-ignore
-description: Estándares de programación obligatorios de Accurate Media. Úsala SIEMPRE que escribas, edites, refactorices o revises código en este proyecto —frontend (React 19 + Vite + Shadcn) o backend (Spring Boot + MongoDB + Gradle)—, aunque el dev no las mencione explícitamente. Cubre convenciones de nombres, Clean Code (sin números mágicos, guard clauses, responsabilidad única, límites de tamaño), arquitectura por capas (Use Cases/Services, Hooks, Componentes, Adaptadores), patrones de diseño, reglas de Git (Conventional Commits y NUNCA push a master) y política de librerías. Si vas a generar o cambiar código y no recuerdas la convención exacta, consulta esta skill en vez de improvisar: el código del equipo debe verse como si lo hubiera escrito una sola persona.
+description: "Estándares de programación obligatorios de Accurate Media. Úsala SIEMPRE que escribas, edites, refactorices o revises código en este proyecto —frontend (React 19 + Vite + Shadcn) o backend (Spring Boot + MongoDB + Gradle)—, aunque el dev no las mencione explícitamente. Cubre convenciones de nombres, Clean Code (sin números mágicos, guard clauses, responsabilidad única, límites de tamaño), arquitectura por capas (Use Cases/Services, Hooks, Componentes, Adaptadores), patrones de diseño, reglas de Git (Conventional Commits y NUNCA push a master) y política de librerías. Si vas a generar o cambiar código y no recuerdas la convención exacta, consulta esta skill en vez de improvisar: el código del equipo debe verse como si lo hubiera escrito una sola persona."
 ---
 
 # Normas de programación — Accurate Media

@@ -1,0 +1,20 @@
+{
+  "name": "normas",
+  "displayName": "Normas de programación — Accurate Media",
+  "version": "1.0.0",
+  "description": "Estándares de programación obligatorios de Accurate Media: convenciones de nombres, Clean Code, arquitectura por capas, patrón adaptador, reglas de Git (Conventional Commits, nunca push a master) y política de librerías, para frontend (React 19 + Vite + Shadcn) y backend (Spring Boot + MongoDB + Gradle).",
+  "author": {
+    "name": "Accurate Media",
+    "email": "diana.ruiz@acmedia.com.mx"
+  },
+  "repository": "https://github.com/Accurate-Media/claude-skills",
+  "license": "UNLICENSED",
+  "keywords": [
+    "estandares",
+    "clean-code",
+    "convenciones",
+    "react",
+    "spring-boot",
+    "accurate-media"
+  ]
+}

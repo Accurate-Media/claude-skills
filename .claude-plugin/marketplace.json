@@ -1,0 +1,31 @@
+{
+  "name": "accurate-media",
+  "owner": {
+    "name": "Accurate Media",
+    "email": "diana.ruiz@acmedia.com.mx"
+  },
+  "metadata": {
+    "description": "Marketplace interno de plugins de Claude Code de Accurate Media. Distribuye las skills oficiales del equipo a todos los desarrolladores de la organización.",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "normas",
+      "source": "./accurate-media-marketplace/plugins/normas",
+      "description": "Estándares de programación obligatorios de Accurate Media para frontend (React 19 + Vite + Shadcn) y backend (Spring Boot + MongoDB + Gradle): convenciones de nombres, Clean Code, arquitectura por capas, patrón adaptador, reglas de Git y política de librerías.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Accurate Media",
+        "email": "diana.ruiz@acmedia.com.mx"
+      },
+      "category": "standards",
+      "keywords": [
+        "estandares",
+        "clean-code",
+        "convenciones",
+        "react",
+        "spring-boot"
+      ]
+    }
+  ]
+}
