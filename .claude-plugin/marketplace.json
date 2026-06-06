@@ -26,6 +26,24 @@
         "react",
         "spring-boot"
       ]
+    },
+    {
+      "name": "cierre",
+      "source": "./accurate-media-marketplace/plugins/cierre",
+      "description": "Ritual de cierre de sesión de trabajo: contexto de la sesión, verificación de rama (nunca master/main), pruebas unitarias, documentación (bitácora + ADR), commit con Conventional Commits y Pull Request hacia dev o release.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Accurate Media",
+        "email": "diana.ruiz@acmedia.com.mx"
+      },
+      "category": "workflow",
+      "keywords": [
+        "cierre",
+        "git",
+        "conventional-commits",
+        "pull-request",
+        "documentacion"
+      ]
     }
   ]
 }

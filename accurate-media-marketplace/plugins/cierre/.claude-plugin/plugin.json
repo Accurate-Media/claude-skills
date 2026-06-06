@@ -1,0 +1,20 @@
+{
+  "name": "cierre",
+  "displayName": "Cierre de sesión — Accurate Media",
+  "version": "1.0.0",
+  "description": "Ritual de cierre de sesión de trabajo de Accurate Media: reúne el contexto de la sesión, verifica que no se está en master/main, crea y corre pruebas unitarias, genera la documentación (bitácora + ADR), hace el commit con Conventional Commits enlazando el issue y abre el Pull Request hacia dev o release (nunca hacia master).",
+  "author": {
+    "name": "Accurate Media",
+    "email": "diana.ruiz@acmedia.com.mx"
+  },
+  "repository": "https://github.com/Accurate-Media/claude-skills",
+  "license": "UNLICENSED",
+  "keywords": [
+    "cierre",
+    "git",
+    "conventional-commits",
+    "pull-request",
+    "documentacion",
+    "accurate-media"
+  ]
+}
