@@ -132,14 +132,21 @@ while IFS= read -r skill; do
     fallo "$skill: el frontmatter contiene una línea de comentario"
   fi
 
-  # referencias citadas que no existen
+  # referencias citadas que no existen.
+  # Acepta 'references/x.md' (dentro de la propia skill) y también
+  # 'otra-skill/references/x.md' (cita cruzada, ej. normas/references/git.md).
+  raiz_skills="$(dirname "$dir")"
   while IFS= read -r ref; do
     [ -z "$ref" ] && continue
-    if [ ! -f "$dir/$ref" ]; then
-      fallo "$skill: cita '$ref' pero el archivo no existe"
+    case "$ref" in
+      */references/*|*/assets/*) destino="$raiz_skills/$ref" ;;
+      *)                         destino="$dir/$ref" ;;
+    esac
+    if [ ! -f "$destino" ]; then
+      fallo "$skill: cita '$ref' pero no existe $destino"
     fi
   done <<EOF
-$(grep -oE '(references|assets)/[A-Za-z0-9._-]+\.md' "$skill" | sort -u)
+$(grep -oE '([a-z][a-z-]*/)?(references|assets)/[A-Za-z0-9._-]+\.md' "$skill" | sort -u)
 EOF
 
   [ "$FALLOS" -eq 0 ] && ok "$skill"
@@ -256,9 +263,13 @@ Create `.gitignore`:
 ./scripts/validate.sh
 ```
 
-Esperado: PASA, con una línea `ok:` por cada plugin y cada SKILL.md, y `Todo correcto` al final.
+Esperado: **exactamente un fallo**, y que sea este:
 
-Nota: en este punto `normas/SKILL.md` todavía tiene su `#prettier-ignore` en el frontmatter, así que la comprobación 8 debe hacerlo fallar. Ese fallo es **legítimo y esperado**: no lo arregles aquí. Comenta la línea del `git mv` mentalmente y confirma que el único fallo reportado es ese. Si aparece cualquier otro, arréglalo.
+```
+FALLO: .../skills/normas/SKILL.md: el frontmatter contiene una línea de comentario
+```
+
+Es el `#prettier-ignore` que `normas/SKILL.md` todavía arrastra. Es un fallo **legítimo y esperado en esta tarea**: no lo arregles aquí, lo limpia la Task 3. Todo lo demás debe salir en verde. Si aparece cualquier otro fallo, arréglalo antes de commitear.
 
 - [ ] **Step 8: Commit**
 
@@ -1092,7 +1103,7 @@ En `plugins/accurate-media/skills/cierre/assets/plantilla-bitacora.md`, cambia e
 - [ ] **Step 5: Verificar que no queda ninguna referencia a dev/release**
 
 ```bash
-grep -rn --include='*.md' -E '\b(dev|release)\b' plugins/accurate-media/skills/ | grep -viE '<dev>|\{dev\}|el dev|del dev|al dev|accuratemedia\.dev|dev/tipo|/dev/'
+grep -rn --include='*.md' -E '\b(dev|release)\b' plugins/accurate-media/skills/ | grep -viE '<dev>|\{dev\}|(el|del|al|un|los|cada|ese|tu) dev|accuratemedia\.dev|dev/tipo|/dev/|dev\)'
 ```
 
 Esperado: **sin resultados**. Cualquier línea que salga es una referencia al modelo de ramas viejo; corrígela.
