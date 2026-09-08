@@ -67,6 +67,23 @@ verificar allow master               'git diff master'
 verificar allow master               'ls -la'
 verificar allow master               'npm run test'
 
+# --- deniega: bypasses cerrados (revisión adversarial) ---------------------
+verificar deny  master               'git push origin '\''master'\'''
+verificar deny  master               'git push origin \"master\"'
+verificar deny  master               'git push origin +master'
+verificar deny  noel/feat/42-x       'git push origin +master'
+verificar deny  noel/feat/42-x       'git push --all origin'
+verificar deny  noel/feat/42-x       'git push --mirror origin'
+verificar deny  noel/feat/42-x       '(cd /tmp && git push origin master)'
+verificar deny  noel/feat/42-x       'eval \"git push origin master\"'
+verificar deny  noel/feat/42-x       'git push origin $(echo master)'
+verificar deny  noel/feat/42-x       'sudo git push origin master'
+
+# --- permite: contra el sobrebloqueo de la normalización --------------------
+verificar allow noel/feat/42-x       'git push origin '\''noel/feat/42-x'\'''
+verificar allow master               'git log --all --oneline'
+verificar allow master               'git push origin +noel/feat/42-x'
+
 # --- degradación segura ----------------------------------------------------
 en_rama master
 if printf 'no soy json' | "$GUARD" >/dev/null 2>&1; then

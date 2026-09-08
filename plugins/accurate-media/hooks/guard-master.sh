@@ -22,6 +22,44 @@ rama_actual() { git rev-parse --abbrev-ref HEAD 2>/dev/null; }
 
 protegida() { printf '%s' "$1" | grep -qE "$PROTEGIDAS"; }
 
+# Quita comillas y paréntesis de un segmento antes de tokenizarlo. Esto neutraliza
+# 'master' / "master" (comillas ordinarias al escribir git) y los paréntesis de un
+# subshell ( ... git push origin master) sin tocar el resto del texto.
+normalizar() { printf '%s' "$1" | tr -d "()'\""; }
+
+# Quita una palabra envolvente al inicio del segmento (eval/sudo/command/time) para
+# que 'eval "git push origin master"' siga viéndose como un comando git.
+quitar_envoltura() {
+  local s primer resto
+  s="$(printf '%s' "$1" | sed 's/^[[:space:]]*//')"
+  while :; do
+    case "$s" in
+      *' '*) primer="${s%% *}"; resto="${s#* }" ;;
+      *) break ;;
+    esac
+    case "$primer" in
+      eval|sudo|command|time) s="$resto" ;;
+      *) break ;;
+    esac
+  done
+  printf '%s' "$s"
+}
+
+# NOTA DE ALCANCE: una sustitución de comando que NO contiene el nombre literal de la
+# rama (p.ej. 'git push origin $(rama_actual)') queda deliberadamente sin cubrir.
+# Cerrar eso exigiría un parser de shell real dentro de un hook cuyo contrato es
+# degradar permitiendo, y requiere esfuerzo deliberado del propio dev al que este
+# guardarraíl protege. El backstop para ese caso es la protección de rama en GitHub.
+
+# ¿algún token del segmento (ya tokenizado) es exactamente esta bandera?
+tiene_bandera() {
+  local t bandera="$2"
+  for t in $1; do
+    [ "$t" = "$bandera" ] && return 0
+  done
+  return 1
+}
+
 # ¿el segmento es 'git <sub>'? tolera flags globales y -C/-c con argumento
 es_git_sub() {
   local seg="$1" sub="$2" t saltar=0
@@ -40,13 +78,19 @@ es_git_sub() {
 }
 
 # ¿algún token nombra explícitamente una rama protegida?
+# Un '+' al inicio de un token (o del lado destino de un refspec) es el prefijo de
+# force-push de git ('+master', 'origen:+refs/heads/master'); se quita antes de
+# comparar para que no sirva de disfraz.
 apunta_protegida() {
   local t dst
   for t in $1; do
     case "$t" in
       -*) continue ;;
+    esac
+    t="${t#+}"
+    case "$t" in
       *:*)
-        dst="${t#*:}"; dst="${dst#refs/heads/}"
+        dst="${t#*:}"; dst="${dst#refs/heads/}"; dst="${dst#+}"
         protegida "$dst" && return 0
         ;;
       master|main|refs/heads/master|refs/heads/main) return 0 ;;
@@ -77,15 +121,19 @@ rama="$(rama_actual)"
 # 'denegar' necesita poder terminar el script entero.
 while IFS= read -r seg; do
   [ -z "$seg" ] && continue
-  if es_git_sub "$seg" push; then
-    if apunta_protegida "$seg"; then
-      denegar "Bloqueado: ese push aterriza en una rama protegida (master/main). En Accurate Media master solo recibe codigo via Pull Request. Usa la skill 'arranque' para crear una rama <dev>/<tipo>/<issue>-<slug> y la skill 'cierre' para abrir el PR."
+  seg_proc="$(quitar_envoltura "$(normalizar "$seg")")"
+  if es_git_sub "$seg_proc" push; then
+    if tiene_bandera "$seg_proc" "--all" || tiene_bandera "$seg_proc" "--mirror"; then
+      denegar "Bloqueado: 'push --all' y 'push --mirror' empujan todas las ramas locales, incluida master, sin importar en cuál estés parado. Usa un push explícito a la rama que quieras enviar."
     fi
-    if protegida "$rama" && ! destino_explicito "$seg"; then
-      denegar "Bloqueado: estas parado en '$rama', una rama protegida, y ese push la enviaria al remoto. Usa la skill 'arranque' para mover el trabajo a una rama de funcionalidad."
+    if apunta_protegida "$seg_proc"; then
+      denegar "Bloqueado: ese push aterriza en una rama protegida (master/main). En Accurate Media master solo recibe código via Pull Request. Usa la skill 'arranque' para crear una rama <dev>/<tipo>/<issue>-<slug> y la skill 'cierre' para abrir el PR."
+    fi
+    if protegida "$rama" && ! destino_explicito "$seg_proc"; then
+      denegar "Bloqueado: estás parado en '$rama', una rama protegida, y ese push la enviaría al remoto. Usa la skill 'arranque' para mover el trabajo a una rama de funcionalidad."
     fi
   fi
-  if es_git_sub "$seg" commit && protegida "$rama"; then
+  if es_git_sub "$seg_proc" commit && protegida "$rama"; then
     denegar "Bloqueado: no se commitea sobre '$rama'. Usa la skill 'arranque' para crear una rama <dev>/<tipo>/<issue>-<slug> antes de commitear."
   fi
 done <<EOF
