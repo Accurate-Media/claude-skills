@@ -24,8 +24,12 @@ fi
 
 # --- 2 y 3. cada source resuelve y su plugin.json es válido -------------
 if [ -f "$MKT" ] && json_valido "$MKT"; then
-  while IFS= read -r src; do
-    [ -z "$src" ] && continue
+  while IFS=$'\t' read -r nombre_plugin src; do
+    [ -z "$nombre_plugin" ] && [ -z "$src" ] && continue
+    if [ -z "$src" ]; then
+      fallo "marketplace.json: el plugin '$nombre_plugin' no tiene campo 'source'"
+      continue
+    fi
     dir="$RAIZ/${src#./}"
     if [ ! -d "$dir" ]; then
       fallo "source no resuelve: $src"
@@ -45,7 +49,14 @@ if [ -f "$MKT" ] && json_valido "$MKT"; then
       ok "plugin $src"
     fi
   done <<EOF
-$(python3 -c "import json; print('\n'.join(p['source'] for p in json.load(open('$MKT'))['plugins']))" 2>/dev/null)
+$(python3 -c "
+import json
+data = json.load(open('$MKT'))
+for i, p in enumerate(data.get('plugins', [])):
+    nombre = p.get('name') or ('(sin name, índice %d)' % i)
+    fuente = p.get('source', '')
+    print(nombre + '\t' + fuente)
+" 2>/dev/null)
 EOF
 fi
 
@@ -60,6 +71,7 @@ while IFS= read -r skill; do
   dir="$(dirname "$skill")"
   carpeta="$(basename "$dir")"
   fm="$(awk 'NR==1 && $0!="---"{exit} NR>1 && /^---$/{exit} NR>1' "$skill")"
+  fallos_previos="$FALLOS"
 
   if [ -z "$fm" ]; then
     fallo "$skill: sin frontmatter"
@@ -104,7 +116,7 @@ while IFS= read -r skill; do
 $(grep -oE '([a-z][a-z-]*/)?(references|assets)/[A-Za-z0-9._-]+\.md' "$skill" | sort -u)
 EOF
 
-  [ "$FALLOS" -eq 0 ] && ok "$skill"
+  [ "$FALLOS" -eq "$fallos_previos" ] && ok "$skill"
 done <<EOF
 $SKILLS
 EOF
