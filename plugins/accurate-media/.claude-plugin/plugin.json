@@ -1,0 +1,23 @@
+{
+  "name": "accurate-media",
+  "displayName": "Accurate Media — normas y flujo de trabajo",
+  "version": "2.0.0",
+  "description": "Estándares de programación y ciclo completo de sesión de Accurate Media: normas de código para frontend (React 19 + Vite + Shadcn) y backend (Spring Boot + MongoDB + Gradle), arranque de sesión con worktree aislado, scaffolding de features por capas, pruebas, y cierre con documentación, commit y Pull Request a master. Incluye un hook que bloquea commits y pushes directos sobre master.",
+  "author": {
+    "name": "Accurate Media",
+    "email": "diana.ruiz@acmedia.com.mx"
+  },
+  "repository": "https://github.com/Accurate-Media/claude-skills",
+  "license": "UNLICENSED",
+  "keywords": [
+    "estandares",
+    "clean-code",
+    "convenciones",
+    "react",
+    "spring-boot",
+    "git",
+    "conventional-commits",
+    "worktree",
+    "accurate-media"
+  ]
+}
