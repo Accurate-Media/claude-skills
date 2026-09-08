@@ -20,9 +20,27 @@ en_rama() {
   git switch -q "$1" 2>/dev/null || git switch -q -c "$1"
 }
 
+# El payload se arma con un codificador JSON de verdad. Con printf, un comando que
+# contuviera " o \ producía JSON inválido: el hook no extraía nada, salía temprano y
+# el caso reportaba "allow" sin haber ejercitado ninguna lógica. Los casos de prueba
+# llevan la cadena de shell tal cual, sin escapes JSON a mano.
+# python3 solo es dependencia de este arnés de desarrollo; el hook sigue sin exigirlo.
+json_encode() { python3 -c 'import json,sys; print(json.dumps(sys.argv[1]))' "$1"; }
+
+payload_de() { printf '{"tool_input":{"command":%s}}' "$(json_encode "$1")"; }
+
+# Misma extracción que hace el hook, para poder comprobar el viaje de ida y vuelta.
+decodificar() {
+  if command -v jq >/dev/null 2>&1; then
+    jq -r '.tool_input.command // empty' 2>/dev/null
+  elif command -v python3 >/dev/null 2>&1; then
+    python3 -c 'import json,sys; print(json.load(sys.stdin).get("tool_input",{}).get("command",""))' 2>/dev/null
+  fi
+}
+
 decision() { # $1 = comando -> imprime "deny" o "allow"
   local salida
-  salida="$(printf '{"tool_input":{"command":"%s"}}' "$1" | "$GUARD" 2>/dev/null)"
+  salida="$(payload_de "$1" | "$GUARD" 2>/dev/null)"
   case "$salida" in
     *'"deny"'*) printf 'deny' ;;
     *)          printf 'allow' ;;
@@ -41,6 +59,24 @@ verificar() { # $1 = esperado, $2 = rama, $3 = comando
     printf 'FALLO [%s] %s :: esperado %s, obtenido %s\n' "$2" "$3" "$1" "$real" >&2
   fi
 }
+
+# Autocomprobación del arnés: lo que el hook acaba leyendo tiene que ser byte a byte
+# la cadena que el caso pretendía probar. Sin esto, un fallo de codificación puede
+# hacer que toda la suite pruebe en silencio una cadena distinta de la que dice.
+autoverificar() { # $1 = cadena representativa
+  local obtenido
+  obtenido="$(payload_de "$1" | decodificar)"
+  if [ "$obtenido" = "$1" ]; then
+    PASADAS=$((PASADAS + 1))
+    printf 'ok   arnés: el comando llega intacto al hook\n'
+  else
+    FALLADAS=$((FALLADAS + 1))
+    printf 'FALLO arnés: se pretendía [%s] pero el hook leería [%s]\n' "$1" "$obtenido" >&2
+  fi
+}
+
+# Comilla doble, comilla simple, backslash, paréntesis y $ en una sola cadena.
+autoverificar 'git commit -m "fix(cart): don'"'"'t crash \ ni $HOME"'
 
 # --- deniega ---------------------------------------------------------------
 verificar deny  master               'git push'
@@ -69,23 +105,26 @@ verificar allow master               'npm run test'
 
 # --- deniega: bypasses cerrados (revisión adversarial) ---------------------
 verificar deny  master               'git push origin '\''master'\'''
-verificar deny  master               'git push origin \"master\"'
+verificar deny  master               'git push origin "master"'
 verificar deny  master               'git push origin +master'
 verificar deny  noel/feat/42-x       'git push origin +master'
 verificar deny  noel/feat/42-x       'git push --all origin'
 verificar deny  noel/feat/42-x       'git push --mirror origin'
 verificar deny  noel/feat/42-x       '(cd /tmp && git push origin master)'
-verificar deny  noel/feat/42-x       'eval \"git push origin master\"'
+verificar deny  noel/feat/42-x       'eval "git push origin master"'
 verificar deny  noel/feat/42-x       'git push origin $(echo master)'
 verificar deny  noel/feat/42-x       'sudo git push origin master'
-verificar deny  master               'git pu\\sh origin master'
-verificar deny  noel/feat/42-x       'git push origin \\master'
-verificar deny  noel/feat/42-x       'git push origin mas\\ter'
+verificar deny  master               'git pu\sh origin master'
+verificar deny  noel/feat/42-x       'git push origin \master'
+verificar deny  noel/feat/42-x       'git push origin mas\ter'
+verificar deny  master               "git push origin \$'master'"
+verificar deny  noel/feat/42-x       "git push origin \$'master'"
 
 # --- permite: contra el sobrebloqueo de la normalización --------------------
 verificar allow noel/feat/42-x       'git push origin '\''noel/feat/42-x'\'''
 verificar allow master               'git log --all --oneline'
 verificar allow master               'git push origin +noel/feat/42-x'
+verificar allow noel/feat/42-x       "git push origin \$'noel/feat/42-x'"
 verificar allow noel/feat/42-x       'git commit -m "fix(cart): don'"'"'t crash"'
 
 # --- degradación segura ----------------------------------------------------

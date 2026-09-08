@@ -22,13 +22,18 @@ rama_actual() { git rev-parse --abbrev-ref HEAD 2>/dev/null; }
 
 protegida() { printf '%s' "$1" | grep -qE "$PROTEGIDAS"; }
 
-# Quita comillas, paréntesis y barras invertidas de un segmento antes de tokenizarlo.
-# Esto neutraliza 'master' / "master" (comillas ordinarias al escribir git), los
-# paréntesis de un subshell ( ... git push origin master), y un backslash insertado
-# dentro de un token (pu\sh, mas\ter, \master) que bash colapsa al ejecutar de verdad
-# pero que sobreviviría intacto a una comparación de texto exacta. Ningún ref de git
-# puede contener '\', así que quitarlo no bloquea nada legítimo.
-normalizar() { printf '%s' "$1" | tr -d "()'\"\\"; }
+# Quita de un segmento los caracteres que bash consume al ejecutar de verdad, antes
+# de tokenizarlo. Se borran  $ ( ) ' " \  y eso neutraliza:
+#   - comillas ordinarias:  git push origin 'master' / "master"
+#   - paréntesis de subshell: (cd /tmp && git push origin master)
+#   - backslash en un token:  git pu\sh / git push origin \master / mas\ter
+#   - comillas ANSI-C:        git push origin $'master'
+# Todos ellos colapsan en bash al mismo comando real, pero sobrevivirían intactos a
+# una comparación de texto exacta. Quitar caracteres solo puede acercar un token al
+# nombre de una rama protegida, nunca alejarlo: la normalización nunca produce un
+# permiso falso. Ningún ref de git puede contener '\', y un ref con '$' literal que
+# quedara exactamente en 'master' o 'main' al quitarlo es patológico.
+normalizar() { printf '%s' "$1" | tr -d "\$()'\"\\\\"; }
 
 # Quita una palabra envolvente al inicio del segmento (eval/sudo/command/time) para
 # que 'eval "git push origin master"' siga viéndose como un comando git.
