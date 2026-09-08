@@ -78,11 +78,15 @@ verificar deny  noel/feat/42-x       '(cd /tmp && git push origin master)'
 verificar deny  noel/feat/42-x       'eval \"git push origin master\"'
 verificar deny  noel/feat/42-x       'git push origin $(echo master)'
 verificar deny  noel/feat/42-x       'sudo git push origin master'
+verificar deny  master               'git pu\\sh origin master'
+verificar deny  noel/feat/42-x       'git push origin \\master'
+verificar deny  noel/feat/42-x       'git push origin mas\\ter'
 
 # --- permite: contra el sobrebloqueo de la normalización --------------------
 verificar allow noel/feat/42-x       'git push origin '\''noel/feat/42-x'\'''
 verificar allow master               'git log --all --oneline'
 verificar allow master               'git push origin +noel/feat/42-x'
+verificar allow noel/feat/42-x       'git commit -m "fix(cart): don'"'"'t crash"'
 
 # --- degradación segura ----------------------------------------------------
 en_rama master
