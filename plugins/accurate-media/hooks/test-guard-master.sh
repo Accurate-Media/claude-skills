@@ -78,6 +78,10 @@ autoverificar() { # $1 = cadena representativa
 # Comilla doble, comilla simple, backslash, paréntesis y $ en una sola cadena.
 autoverificar 'git commit -m "fix(cart): don'"'"'t crash \ ni $HOME"'
 
+# Continuación de línea real: bash la une, no son dos comandos.
+CONTINUACION="$(printf 'git push origin \\\nmaster')"
+autoverificar "$CONTINUACION"
+
 # --- deniega ---------------------------------------------------------------
 verificar deny  master               'git push'
 verificar deny  main                 'git push'
@@ -119,12 +123,18 @@ verificar deny  noel/feat/42-x       'git push origin \master'
 verificar deny  noel/feat/42-x       'git push origin mas\ter'
 verificar deny  master               "git push origin \$'master'"
 verificar deny  noel/feat/42-x       "git push origin \$'master'"
+verificar deny  master               'git push origin `echo master`'
+verificar deny  noel/feat/42-x       'git push origin `echo master`'
+verificar deny  noel/feat/42-x       "$CONTINUACION"
+verificar deny  master               "$CONTINUACION"
+verificar deny  noel/feat/42-x       'git push origin master \'
 
 # --- permite: contra el sobrebloqueo de la normalización --------------------
 verificar allow noel/feat/42-x       'git push origin '\''noel/feat/42-x'\'''
 verificar allow master               'git log --all --oneline'
 verificar allow master               'git push origin +noel/feat/42-x'
 verificar allow noel/feat/42-x       "git push origin \$'noel/feat/42-x'"
+verificar allow noel/feat/42-x       'git push origin `echo noel/feat/42-x`'
 verificar allow noel/feat/42-x       'git commit -m "fix(cart): don'"'"'t crash"'
 
 # --- degradación segura ----------------------------------------------------

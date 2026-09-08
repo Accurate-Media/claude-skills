@@ -23,17 +23,22 @@ rama_actual() { git rev-parse --abbrev-ref HEAD 2>/dev/null; }
 protegida() { printf '%s' "$1" | grep -qE "$PROTEGIDAS"; }
 
 # Quita de un segmento los caracteres que bash consume al ejecutar de verdad, antes
-# de tokenizarlo. Se borran  $ ( ) ' " \  y eso neutraliza:
-#   - comillas ordinarias:  git push origin 'master' / "master"
+# de tokenizarlo. Se borran  $ ( ) ' " ` \  y eso neutraliza:
+#   - comillas ordinarias:    git push origin 'master' / "master"
 #   - paréntesis de subshell: (cd /tmp && git push origin master)
 #   - backslash en un token:  git pu\sh / git push origin \master / mas\ter
 #   - comillas ANSI-C:        git push origin $'master'
+#   - acentos graves:         git push origin `echo master`
 # Todos ellos colapsan en bash al mismo comando real, pero sobrevivirían intactos a
 # una comparación de texto exacta. Quitar caracteres solo puede acercar un token al
 # nombre de una rama protegida, nunca alejarlo: la normalización nunca produce un
-# permiso falso. Ningún ref de git puede contener '\', y un ref con '$' literal que
-# quedara exactamente en 'master' o 'main' al quitarlo es patológico.
-normalizar() { printf '%s' "$1" | tr -d "\$()'\"\\\\"; }
+# permiso falso. Los dos falsos negativos posibles son inofensivos porque deniegan:
+#   - un ref con '$' o '`' literal que al quitarlo quede exactamente en 'master' o
+#     'main' (git los admite en un nombre de rama, pero nadie los usa);
+#   - una variable sin llaves llamada justo 'main' o 'master' ('git push origin
+#     $main'). Sus vecinas seguras no se ven afectadas: '${main}', '$main_branch'
+#     y '$MAIN' no se confunden con la rama protegida.
+normalizar() { printf '%s' "$1" | tr -d "\$()'\"\`\\\\"; }
 
 # Quita una palabra envolvente al inicio del segmento (eval/sudo/command/time) para
 # que 'eval "git push origin master"' siga viéndose como un comando git.
@@ -53,11 +58,19 @@ quitar_envoltura() {
   printf '%s' "$s"
 }
 
-# NOTA DE ALCANCE: una sustitución de comando que NO contiene el nombre literal de la
-# rama (p.ej. 'git push origin $(rama_actual)') queda deliberadamente sin cubrir.
-# Cerrar eso exigiría un parser de shell real dentro de un hook cuyo contrato es
-# degradar permitiendo, y requiere esfuerzo deliberado del propio dev al que este
-# guardarraíl protege. El backstop para ese caso es la protección de rama en GitHub.
+# NOTA DE ALCANCE (leer antes de "arreglar" un bypass).
+# Este hook para accidentes y descuidos, no a un dev decidido a esquivarlo. La
+# detección es léxica —borrar caracteres y comparar tokens—, no un parser de shell,
+# así que toda grafía que reconstruya el nombre de la rama sin escribirlo literal
+# pasa, y pasa a propósito:
+#   - expansión de llaves:        git push origin mas{ter,} / ma{s..s}ter
+#   - escapes hexadecimales:      git push origin $'\x6daster' / ma$'\x73'ter
+#   - sustitución sin el nombre:  git push origin $(rama_actual) / `rama_actual`
+# Ninguna de esas formas se teclea sin intención inequívoca. Perseguirlas una a una
+# es una carrera que no se gana dentro de un hook cuyo contrato es degradar
+# permitiendo: cada metacarácter nuevo sería otro parche. La defensa de verdad es la
+# protección de rama de GitHub sobre master; este hook es el aviso local rápido que
+# va por delante de ella.
 
 # ¿algún token del segmento (ya tokenizado) es exactamente esta bandera?
 tiene_bandera() {
@@ -123,6 +136,17 @@ comando="$(printf '%s' "$payload" | extraer_comando)" || exit 0
 [ -z "$comando" ] && exit 0
 
 rama="$(rama_actual)"
+
+# bash trata 'backslash + salto de línea' como continuación de la MISMA línea, no
+# como dos comandos. Hay que unirlas ANTES de partir por separadores; si no,
+# 'git push origin \' + 'master' se veía como un push sin destino y una palabra
+# suelta, y ninguno de los dos segmentos disparaba nada.
+# Se une con expansión de parámetros de bash en vez de con sed a propósito: el
+# idioma habitual (sed -e :a -e '/\\$/N; s/\\\n//; ta') ejecuta 'N' también en la
+# última línea, y el sed de BSD (macOS) ante EOF pendiente aborta SIN imprimir; un
+# comando terminado en backslash ('git push origin master \') salía vacío y el hook
+# lo permitía. La expansión de bash no puede fallar ni necesita proceso externo.
+comando="${comando//\\$'\n'/}"
 
 # Evalúa cada segmento: 'cd x && git push origin master' no se cuela.
 # Se parte con un heredoc (no una tubería) para que el while NO corra en un subshell:
