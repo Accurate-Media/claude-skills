@@ -129,6 +129,20 @@ verificar deny  noel/feat/42-x       "$CONTINUACION"
 verificar deny  master               "$CONTINUACION"
 verificar deny  noel/feat/42-x       'git push origin master \'
 
+# --- deniega: el push escondido tras una construcción compuesta -------------
+verificar deny  master               'if git diff --quiet; then git push; fi'
+verificar deny  master               'if true; then git push origin master; fi'
+verificar deny  noel/feat/42-x       'if true; then git push origin master; fi'
+verificar deny  master               'while true; do git commit -m x; done'
+verificar deny  master               '{ git push; }'
+verificar deny  master               'git fetch && { git push; }'
+verificar deny  noel/feat/42-x       'npm run build & git push origin master'
+verificar deny  noel/feat/42-x       'git status & git push origin master'
+verificar deny  noel/feat/42-x       'bash -c "git push origin master"'
+verificar deny  noel/feat/42-x       'nohup git push origin master'
+verificar deny  noel/feat/42-x       'GIT_DIR=x git push origin master'
+verificar deny  noel/feat/42-x       'env FOO=1 git push origin master'
+
 # --- permite: contra el sobrebloqueo de la normalización --------------------
 verificar allow noel/feat/42-x       'git push origin '\''noel/feat/42-x'\'''
 verificar allow master               'git log --all --oneline'
@@ -136,6 +150,15 @@ verificar allow master               'git push origin +noel/feat/42-x'
 verificar allow noel/feat/42-x       "git push origin \$'noel/feat/42-x'"
 verificar allow noel/feat/42-x       'git push origin `echo noel/feat/42-x`'
 verificar allow noel/feat/42-x       'git commit -m "fix(cart): don'"'"'t crash"'
+verificar allow noel/feat/42-x       'if git diff --quiet; then git push -u origin noel/feat/42-x; fi'
+verificar allow noel/feat/42-x       'while true; do git commit -m x; done'
+verificar allow master               'if git diff --quiet; then echo limpio; fi'
+verificar allow master               'npm run build & npm run watch'
+verificar allow master               'git log --oneline & true'
+verificar allow master               'bash -c "npm test"'
+verificar allow master               'command -v git'
+verificar allow master               'nohup npm run watch'
+verificar allow master               'GIT_PAGER=cat git log --oneline'
 
 # --- degradación segura ----------------------------------------------------
 en_rama master

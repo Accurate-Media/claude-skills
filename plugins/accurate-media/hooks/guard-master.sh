@@ -35,13 +35,29 @@ protegida() { printf '%s' "$1" | grep -qE "$PROTEGIDAS"; }
 # permiso falso. Los dos falsos negativos posibles son inofensivos porque deniegan:
 #   - un ref con '$' o '`' literal que al quitarlo quede exactamente en 'master' o
 #     'main' (git los admite en un nombre de rama, pero nadie los usa);
-#   - una variable sin llaves llamada justo 'main' o 'master' ('git push origin
-#     $main'). Sus vecinas seguras no se ven afectadas: '${main}', '$main_branch'
-#     y '$MAIN' no se confunden con la rama protegida.
+#   - una variable sin llaves llamada justo 'main' o 'master', escrita desnuda o
+#     entre comillas dobles ('git push origin $main' y 'git push origin "$main"'
+#     deniegan las dos). Sus vecinas seguras no se ven afectadas: '${main}',
+#     '$main_branch' y '$MAIN' no se confunden con la rama protegida.
 normalizar() { printf '%s' "$1" | tr -d "\$()'\"\`\\\\"; }
 
-# Quita una palabra envolvente al inicio del segmento (eval/sudo/command/time) para
-# que 'eval "git push origin master"' siga viéndose como un comando git.
+# Quita del inicio del segmento las palabras que solo envuelven al comando de verdad,
+# repetidamente por si se apilan, para que el push siga viéndose como un comando git:
+#   - envoltorios:        eval "git push origin master" / sudo git push origin master
+#                         nohup / env / xargs git push origin master
+#   - asignación previa:  GIT_DIR=x git push origin master / env FOO=1 git push ...
+#   - palabras clave:     if ...; then git push; fi   /   while ...; do git commit; done
+#                         if ...; else git push; fi
+#   - apertura de grupo:  { git push; }
+#   - shell explícito:    bash -c "git push origin master"  (el '-c' solo puede quedar
+#                         al inicio después de quitar el nombre del shell)
+# '(' no hace falta en esta lista: normalizar() ya lo borra antes de llegar aquí.
+# Queda fuera, y es deliberado, el envoltorio que se lleva su propio argumento
+# ('timeout 5 git push origin master'): saltarlo exigiría saber cuántos argumentos
+# consume cada programa, que es justo el parser que este hook no quiere ser.
+# Dirección del error: 'git' NO está en la lista, así que un segmento que ya empieza
+# por 'git ' rompe el bucle en la primera vuelta y sale intacto. Quitar palabras solo
+# puede destapar un comando git que antes quedaba oculto: nunca esconde uno.
 quitar_envoltura() {
   local s primer resto
   s="$(printf '%s' "$1" | sed 's/^[[:space:]]*//')"
@@ -51,7 +67,11 @@ quitar_envoltura() {
       *) break ;;
     esac
     case "$primer" in
-      eval|sudo|command|time) s="$resto" ;;
+      eval|sudo|command|time)      s="$resto" ;;
+      nohup|env|xargs)             s="$resto" ;;
+      then|do|else|'{')            s="$resto" ;;
+      bash|sh|zsh|dash|ksh|-c)     s="$resto" ;;
+      *=*)                         s="$resto" ;;   # prefijo de asignación
       *) break ;;
     esac
   done
@@ -60,17 +80,19 @@ quitar_envoltura() {
 
 # NOTA DE ALCANCE (leer antes de "arreglar" un bypass).
 # Este hook para accidentes y descuidos, no a un dev decidido a esquivarlo. La
-# detección es léxica —borrar caracteres y comparar tokens—, no un parser de shell,
-# así que toda grafía que reconstruya el nombre de la rama sin escribirlo literal
-# pasa, y pasa a propósito:
+# detección es léxica —borrar unos caracteres del segmento y comparar tokens sueltos—,
+# no un parser de shell. Por eso estas grafías, que rehacen el nombre de la rama sin
+# escribirlo literal, quedan fuera a propósito:
 #   - expansión de llaves:        git push origin mas{ter,} / ma{s..s}ter
 #   - escapes hexadecimales:      git push origin $'\x6daster' / ma$'\x73'ter
 #   - sustitución sin el nombre:  git push origin $(rama_actual) / `rama_actual`
 # Ninguna de esas formas se teclea sin intención inequívoca. Perseguirlas una a una
 # es una carrera que no se gana dentro de un hook cuyo contrato es degradar
-# permitiendo: cada metacarácter nuevo sería otro parche. La defensa de verdad es la
-# protección de rama de GitHub sobre master; este hook es el aviso local rápido que
-# va por delante de ella.
+# permitiendo: cada metacarácter nuevo sería otro parche. Y no vale la recíproca:
+# escribir 'master' literal tampoco garantiza que se detecte, porque solo se examinan
+# los segmentos que, ya normalizados y sin envoltura, empiezan por 'git '. La defensa
+# de verdad es la protección de rama de GitHub sobre master; este hook es el aviso
+# local rápido que va por delante de ella.
 
 # ¿algún token del segmento (ya tokenizado) es exactamente esta bandera?
 tiene_bandera() {
@@ -149,6 +171,10 @@ rama="$(rama_actual)"
 comando="${comando//\\$'\n'/}"
 
 # Evalúa cada segmento: 'cd x && git push origin master' no se cuela.
+# El '&' suelto también separa ('npm run build & git push origin master'). Va DESPUÉS
+# de '&&' a propósito: '&&' ya se convirtió en ';' y no queda ningún '&' suyo que
+# volver a procesar. Partir de más nunca esconde un token: cada trozo se revisa igual,
+# y un '&' dentro de un token es justo donde bash también partiría.
 # Se parte con un heredoc (no una tubería) para que el while NO corra en un subshell:
 # 'denegar' necesita poder terminar el script entero.
 while IFS= read -r seg; do
@@ -169,7 +195,7 @@ while IFS= read -r seg; do
     denegar "Bloqueado: no se commitea sobre '$rama'. Usa la skill 'arranque' para crear una rama <dev>/<tipo>/<issue>-<slug> antes de commitear."
   fi
 done <<EOF
-$(printf '%s' "$comando" | sed -e 's/&&/;/g' -e 's/||/;/g' -e 's/|/;/g' | tr ';\n' '\n\n')
+$(printf '%s' "$comando" | sed -e 's/&&/;/g' -e 's/&/;/g' -e 's/||/;/g' -e 's/|/;/g' | tr ';\n' '\n\n')
 EOF
 
 exit 0
