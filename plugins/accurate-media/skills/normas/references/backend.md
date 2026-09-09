@@ -1,8 +1,7 @@
 # Normas — Backend (Spring Boot + MongoDB + Gradle)
 
-> No existe manual previo de backend. Estas convenciones son una **propuesta** que replica la arquitectura
-> limpia del frontend (UI nunca toca la API directo → aquí: el controller nunca toca la base de datos directo).
-> Ajústenla en equipo; cuando lo hagan, fijen la decisión en un ADR.
+Arquitectura limpia equivalente a la del frontend: igual que la UI nunca toca la API directamente, aquí
+el controller nunca toca la base de datos directamente.
 
 ## Principio rector
 
@@ -120,13 +119,9 @@ Si MongoDB cambia un campo, se ajusta el mapper en un solo lugar y el contrato d
 - Conexión a Mongo y configuración de Docker Swarm vía variables de entorno / secrets del orquestador,
   no hardcodeadas.
 
-## Pruebas (backend)
+## Pruebas
 
-- **Unitarias:** JUnit 5 + Mockito. Prueba los **Service** mockeando el repositorio. Cubre camino feliz +
-  caso de error (no encontrado, stock 0, input inválido).
-- **Integración:** Testcontainers con un contenedor de MongoDB real para validar repositorios y el flujo
-  controller→service→repo. (No uses Mongo embebido obsoleto.)
-- Comando: `./gradlew test`. Las pruebas deben pasar antes de cualquier commit (lo verifica la skill `cierre`).
+Cómo se prueba el backend está en la skill `pruebas`. Consúltala antes de escribir tests.
 
 ## Gradle y dependencias
 
