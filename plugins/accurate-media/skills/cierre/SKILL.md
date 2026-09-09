@@ -1,14 +1,6 @@
 ---
 name: cierre
-description: >-
-  Ritual de cierre de sesión de trabajo para desarrolladores de Accurate Media en Claude Code.
-  Úsala SIEMPRE que el dev indique que terminó o quiere cerrar: "cierra la sesión", "ya terminé",
-  "haz el cierre", "documenta y sube los cambios", "deja todo listo", "commit y PR", o al final de
-  cualquier jornada de trabajo sobre el repositorio. Recorre en orden: reunir el contexto de la sesión,
-  verificar que NO se está en master/main, crear y correr pruebas unitarias, generar la documentación
-  (bitácora + ADR si hubo decisiones), hacer el commit con Conventional Commits enlazando el issue, y
-  abrir el Pull Request hacia dev o release (NUNCA hacia master). Si los cambios no están documentados,
-  probados o están en la rama equivocada, esta skill lo detiene antes de subir nada.
+description: Ritual de cierre de sesión de trabajo en Accurate Media. Úsala cuando el dev indique que terminó - "cierra la sesión", "ya terminé", "haz el cierre", "commit y PR", "deja todo listo", "documenta y sube los cambios". Recorre en orden - limpiar los archivos de scratch, correr las pruebas, generar la bitácora y el ADR si hubo decisiones, commitear con Conventional Commits enlazando el issue, abrir el Pull Request hacia master con el nombre del dev en el título, y desmontar el worktree de la sesión. Si hay tests en rojo, trabajo sin documentar o el PR no llegó a abrirse, detiene el cierre antes de borrar nada.
 ---
 
 # Cierre de sesión
@@ -18,19 +10,11 @@ y en un Pull Request listo para revisión. El objetivo es que cualquier persona 
 reconstruir la historia del proyecto sin preguntarle a nadie.
 
 Ejecuta los pasos **en orden**. No saltes pasos ni los hagas en paralelo: cada uno depende del anterior.
-Si un paso no puede completarse (tests rojos, rama incorrecta), **detente y resuélvelo con el dev antes
-de continuar**. Nunca subas código a medias.
+Si un paso no puede completarse (tests rojos, rama incorrecta, trabajo sin documentar), **detente y
+resuélvelo con el dev antes de continuar**. Nunca subas código a medias.
 
-## Regla de oro (la más importante)
-
-**JAMÁS se hace commit ni push ni PR directo a `master` (ni a `main`).** En `master` vive el código que
-el cliente tiene desplegado en producción. Romperla es romperle el servicio al cliente.
-
-- El destino de un Pull Request es `dev` o `release`, nunca `master`.
-- Si al verificar la rama detectas que el dev está parado en `master`/`main`, **detente inmediatamente**,
-  avísale, y ayúdale a mover su trabajo a una rama de funcionalidad antes de seguir.
-- Esta skill complementa, pero no reemplaza, la *branch protection* de GitHub. Si master no está
-  protegida a nivel de GitHub, recomiéndalo (ver más abajo).
+La política de ramas, commits y Pull Request vive en `normas/references/git.md`. Esta skill la cita en
+cada paso donde aplica; no la repite.
 
 ---
 
@@ -40,116 +24,115 @@ Antes de tocar nada, entiende qué pasó en esta sesión.
 
 1. Ejecuta `git status` y `git diff --stat` para ver qué archivos cambiaron.
 2. Revisa el historial de la conversación: qué tarea se trabajó, qué decisiones se tomaron y por qué,
-   qué problemas surgieron.
-3. Pregunta al dev (si no está claro) **a qué issue corresponde** este trabajo. Los issues viven en un
-   proyecto de GitHub. Necesitas el número (ej. `#42`) para enlazarlo en el commit y el PR.
+   qué problemas surgieron. Pero el contexto de una sesión larga puede haberse comprimido: **no
+   dependas solo de la conversación**. Reconstrúyelo con `git log origin/master..HEAD --oneline` y el
+   diff completo de la rama.
+3. Pregunta al dev (si no está claro) **a qué issue corresponde** este trabajo. Necesitas el número
+   (ej. `#42`) para enlazarlo en el commit y el PR.
 
-Si no hay cambios sin commitear (`git status` limpio), avísale al dev: no hay nada que cerrar.
+Si no hay cambios (`git status` limpio y sin commits por delante de `origin/master`), avísale al dev:
+no hay nada que cerrar.
 
-## Paso 2 — Verificar la rama (CRÍTICO)
+## Paso 2 — Limpiar el scratch
+
+Va **antes** del commit para que no se cuele nada en él.
+
+1. Identifica los archivos `.md` sueltos y los reportes que Claude haya generado durante la sesión (por
+   ejemplo en un directorio de scratch o en la raíz del repo) que **no** pertenezcan a `docs/bitacora/`
+   ni a `docs/adr/`.
+2. **Lístaselos al dev y pide confirmación explícita antes de borrar nada.** Nunca borres un archivo
+   que el dev haya escrito él mismo — ante la duda, pregúntale de quién es.
+3. Solo entonces elimina los que confirmó.
+
+## Paso 3 — Verificar la rama
 
 ```bash
 git rev-parse --abbrev-ref HEAD
 ```
 
-- Si devuelve `master` o `main`: **NO continúes**. Dile al dev que está en una rama protegida y ayúdale:
-  crear una rama de funcionalidad (`git switch -c feat/<descripcion-corta>`) que llevará sus cambios, o
-  mover el trabajo según prefiera. Solo continúa cuando esté en una rama de funcionalidad.
-- Si está en una rama de funcionalidad correcta: anótala, la usarás para el push y el PR.
+Debe ser una rama de funcionalidad que siga la convención de `normas/references/git.md`
+(`<dev>/<tipo>/<issue>-<slug>`). Si devuelve `master` o `main`, **detente**: el hook `guard-master` va
+a denegar el commit de todos modos. Su detección es léxica, no una garantía —un dev decidido puede
+evadirla—, así que no es lo único que te protege aquí; aun así, es la señal rápida de que algo está
+mal. Ayuda al dev a mover el trabajo a una rama correcta con la skill `arranque`.
 
-Convención de nombres de rama sugerida: `feat/<issue>-<descripcion>`, `fix/<issue>-<descripcion>`,
-`refactor/<descripcion>`. Ej: `feat/42-calculo-impuestos`.
+## Paso 4 — Pruebas
 
-## Paso 3 — Pruebas unitarias
+El código no se cierra sin pruebas que demuestren que funciona. El detalle de qué se prueba, cómo se
+escribe y qué comandos correr vive en la skill `pruebas`; aquí solo la exigencia:
 
-El código no se cierra sin pruebas que demuestren que funciona.
+1. Identifica la lógica nueva o modificada en esta sesión.
+2. Escribe las pruebas que falten.
+3. Corre la suite completa. **Todas las pruebas deben pasar.** No avances al commit con tests en rojo:
+   arregla el código o la prueba y vuelve a correr.
 
-1. Identifica la lógica nueva o modificada en esta sesión (casos de uso, hooks, servicios, funciones de
-   utilidad, services de backend). La UI puramente presentacional y la configuración no requieren prueba
-   unitaria; la lógica de negocio **sí**.
-2. Revisa si ya existen pruebas para ese código. Si faltan, **escríbelas**.
-3. Cubre el camino feliz y al menos un caso de error o borde (input nulo, lista vacía, valor fuera de rango).
-4. Ejecuta la suite:
-   - Frontend (Vite): `npm run test` (Vitest) o el script definido en `package.json`.
-   - Backend (Spring Boot + Gradle): `./gradlew test`.
-5. **Todas las pruebas deben pasar.** Si alguna falla, arregla el código o la prueba y vuelve a correr.
-   No avances al commit con tests en rojo.
+Reporta brevemente al dev: cuántas pruebas corrieron y qué cubren las nuevas.
 
-Reporta brevemente al dev: cuántas pruebas corrieron, qué cubren las nuevas.
+## Paso 5 — Documentación
 
-## Paso 4 — Documentación
+Genera la documentación de la sesión. Hay tres piezas; usa las que apliquen.
 
-Genera la documentación de la sesión. Hay tres piezas; usa las que apliquen:
+### 5a. Bitácora de sesión (siempre)
 
-### 4a. Bitácora de sesión (siempre)
+Crea `docs/bitacora/AAAA-MM-DD-<rama-aplanada>.md` usando `assets/plantilla-bitacora.md`. **Un archivo
+por sesión, no por día**: varios devs cerrando el mismo día en ramas distintas generarían conflictos de
+merge constantes sobre un archivo compartido. Rellénala con lo reunido en el Paso 1; en "Decisiones"
+escribe **por qué**, no solo qué.
 
-Crea o anexa una entrada en `docs/bitacora/AAAA-MM-DD.md` (un archivo por día; varias entradas si hay
-varias sesiones). Usa la plantilla `assets/plantilla-bitacora.md`. Rellénala con lo que reuniste en el
-Paso 1. Sé concreto: en "Decisiones" escribe **por qué**, no solo qué.
+### 5b. ADR — Architecture Decision Record (solo si hubo una decisión arquitectónica)
 
-### 4b. ADR — Architecture Decision Record (solo si hubo una decisión arquitectónica)
+Si en la sesión se eligió entre alternativas con impacto duradero, crea un ADR en
+`docs/adr/NNNN-titulo-corto.md` usando `assets/plantilla-adr.md`. Numéralos correlativos.
 
-Si en la sesión se eligió entre alternativas con impacto duradero (cambiar de Context API a otra
-solución de estado, introducir una librería nueva, cambiar la forma de un contrato de API, una decisión
-de modelado en MongoDB), crea un ADR en `docs/adr/NNNN-titulo-corto.md` usando la plantilla
-`assets/plantilla-adr.md`. Numéralos correlativos. Un ADR captura: contexto, decisión, alternativas
-consideradas y consecuencias. Es lo que evita la pregunta "¿por qué hicimos esto así?" seis meses después.
-
-### 4c. Documentación viva afectada (si aplica)
+### 5c. Documentación viva afectada (si aplica)
 
 Si los cambios alteran un README, un contrato de API, variables de entorno o pasos de instalación,
-actualiza esos documentos en el mismo cierre. La documentación que se desactualiza es peor que no tenerla.
+actualiza esos documentos en el mismo cierre.
 
-## Paso 5 — Commit (Conventional Commits)
+## Paso 6 — Commit, push y PR
 
-Construye uno o varios commits atómicos. Mensaje en formato Conventional Commits, enlazando el issue:
+Formato del commit, título y cuerpo del PR: todo según `normas/references/git.md`. No lo repitas aquí.
 
-```
-<tipo>(<alcance>): <descripción breve en imperativo>
-
-<cuerpo opcional explicando el porqué>
-
-fix #<issue>
-```
-
-Tipos permitidos: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`.
-
-Ejemplo:
 ```bash
 git add <archivos>
-git commit -m "feat(cart): agrega cálculo de impuestos por región" -m "Centraliza la lógica fiscal en un caso de uso para reutilizarla en checkout y carrito." -m "fix #42"
+git commit -m "<tipo>(<alcance>): <descripción>" -m "<porqué>" -m "fix #<issue>"
+git push -u origin <rama-actual>
+gh pr create --base master --head <rama-actual> \
+  --title "<tipo>(<alcance>): <descripción> — <dev>" --body-file <archivo-pr>
 ```
 
-Palabras clave de cierre de issue (`fix #N`, `close #N`, `resolves #N`) hacen que GitHub cierre el issue
-al mergear el PR. Úsalas cuando el trabajo de hecho completa el issue; si solo avanza, referencia con
-`#N` sin palabra de cierre.
+Construye el cuerpo del PR a partir de `assets/plantilla-pr.md`. Devuélvele al dev la URL del PR que
+imprime `gh`.
 
-## Paso 6 — Push y Pull Request
+Si `gh` no está autenticado o no está instalado, entrégale al dev el título y el cuerpo ya redactados
+para que abra el PR a mano con base `master`. **Tú no cambias permisos ni configuración de la cuenta.**
 
-1. **Re-verifica la rama** (`git rev-parse --abbrev-ref HEAD`). Última oportunidad de atrapar un error:
-   si por cualquier razón es `master`/`main`, **aborta**.
-2. Push a la rama de funcionalidad:
-   ```bash
-   git push -u origin <rama-actual>
-   ```
-3. Abre el PR con `gh` (GitHub CLI). **La rama base es `dev` o `release`** según corresponda el trabajo
-   —pregúntale al dev si no es obvio—, **nunca `master`**:
-   ```bash
-   gh pr create --base dev --head <rama-actual> --title "<tipo>(<alcance>): <título>" --body-file <archivo-pr>
-   ```
-   Construye el cuerpo del PR a partir de `assets/plantilla-pr.md`: resumen, issue enlazado, qué cambió,
-   cómo se probó, y checklist. El PR es la unidad de revisión; que el cuerpo cuente la historia completa.
-4. Devuélvele al dev el enlace del PR que imprime `gh`.
+## Paso 7 — Desmontar el worktree
 
-Si `gh` no está autenticado o no está instalado, dile al dev que abra el PR manualmente con base `dev`/`release`
-y dale el título y el cuerpo ya redactados para que los pegue. **Tú no cambias permisos ni configuración de
-la cuenta.**
+Solo si se cumplen **las tres** condiciones:
+
+1. el push terminó con éxito, **y**
+2. `gh pr create` devolvió una URL de PR, **y**
+3. el dev confirma que quiere cerrar (puede querer seguir trabajando en el mismo worktree).
+
+Si falta cualquiera, **conserva el worktree** y avísale por qué. Perder trabajo por limpiar demasiado
+pronto es el peor fallo posible de esta skill.
+
+```bash
+cd <ruta-del-repo-principal>          # el cwd no puede estar dentro del worktree
+git worktree remove ../<repo>-worktrees/<dev>-<tipo>-<slug>
+```
+
+**No borres la rama local sin confirmación explícita**: ya vive en el remoto, pero el dev puede
+quererla para seguir trabajando.
 
 ---
 
 ## Resumen del flujo
 
-contexto → verificar rama (≠ master) → tests (verde) → docs (bitácora + ADR) → commit (Conventional + issue)
-→ push → PR a dev/release (nunca master) → enlace al dev.
+```
+contexto → scratch limpio → rama válida → tests en verde → docs (bitácora + ADR)
+→ commit → push → PR a master → worktree desmontado → enlace al dev
+```
 
 Cierra confirmando en una línea: rama, # de tests que pasan, archivos de doc generados, y el enlace del PR.
