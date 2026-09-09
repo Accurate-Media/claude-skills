@@ -1,0 +1,82 @@
+# claude-skills
+
+Marketplace interno de Claude Code de **Accurate Media**. Empaqueta las normas de programación del
+equipo y el ciclo completo de una sesión de trabajo (arranque, scaffolding de features, pruebas y
+cierre) como un único plugin, `accurate-media`, instalable en el Claude Code de cualquier persona del
+equipo.
+
+## Instalación
+
+Desde una sesión de Claude Code:
+
+```
+/plugin marketplace add Accurate-Media/claude-skills
+/plugin install accurate-media@accurate-media
+```
+
+Con eso quedan disponibles las cinco skills y el hook de protección de `master` descritos abajo.
+
+## Catálogo de skills
+
+| Skill | Qué hace | Cuándo se dispara |
+|---|---|---|
+| `normas` | Estándares de programación obligatorios: convenciones de nombres, Clean Code, arquitectura por capas, patrón adaptador, política de dependencias y las reglas de Git del equipo. | Siempre que se escribe, edita, refactoriza o revisa código — frontend (React 19 + Vite + Shadcn) o backend (Spring Boot + MongoDB + Gradle) —, aunque el dev no lo pida explícitamente. |
+| `arranque` | Sincroniza `master`, resuelve el issue en GitHub, crea la rama con la convención del equipo dentro de un worktree aislado para la sesión, y carga el contexto del trabajo. Es la puerta de entrada del ciclo: sin ella no hay rama válida y el hook `guard-master` bloqueará el primer commit. | Cuando el dev va a empezar a trabajar — "arranca", "empecemos", "voy a trabajar en el issue 42", "nueva feature", "prepárame el entorno", "vamos a arreglar el bug X". |
+| `feature` | Genera el esqueleto vertical de una feature nueva respetando la arquitectura por capas: en frontend caso de uso, hook, componente y adaptador; en backend controller, service, repository, document, DTOs y mapper, cada uno con su esqueleto de prueba. No inventa lógica de negocio. | Cuando el dev pide "crea la feature X", "necesito un CRUD de Y", "arma la pantalla de Z", "añade el endpoint de W" o "monta el módulo de V". |
+| `pruebas` | Fija el estilo de pruebas del equipo: Vitest + React Testing Library en frontend sobre casos de uso, hooks y utils; JUnit 5 + Mockito y Testcontainers con MongoDB real en backend. Define qué se prueba y qué no, exige camino feliz más al menos un caso de borde. | Cuando el dev pide "escribe pruebas", "cubre esto con tests", "faltan pruebas", "añade cobertura", o antes de cerrar cualquier trabajo. |
+| `cierre` | Recorre en orden: limpia los archivos de scratch, corre las pruebas, genera la bitácora y el ADR si hubo decisiones, commitea con Conventional Commits enlazando el issue, abre el Pull Request hacia `master` con el nombre del dev en el título, y desmonta el worktree de la sesión. Si hay tests en rojo, trabajo sin documentar o el PR no llegó a abrirse, detiene el cierre antes de borrar nada. | Cuando el dev indica que terminó — "cierra la sesión", "ya terminé", "haz el cierre", "commit y PR", "deja todo listo", "documenta y sube los cambios". |
+
+## El ciclo de una sesión
+
+```
+arranque  →  feature  →  (código)  →  pruebas  →  cierre
+   │                                                 │
+   └── rama + worktree                worktree desmontado + PR
+```
+
+`normas` no aparece en el diagrama porque no es un paso: aplica de fondo durante todo el ciclo, cada
+vez que se escribe o revisa código.
+
+La política de ramas, commits y Pull Request que estas skills siguen vive en un único lugar:
+[`plugins/accurate-media/skills/normas/references/git.md`](plugins/accurate-media/skills/normas/references/git.md).
+No se repite aquí.
+
+## El hook `guard-master`
+
+El plugin instala un hook `PreToolUse` que intercepta comandos `Bash` y **deniega** los `git commit` y
+`git push` que aterrizarían en `master` o `main` — commit directo sobre esas ramas, push que las tiene
+como destino, o un push sin destino explícito estando parado en ellas.
+
+Es una red de seguridad rápida y local, no un parser de shell: la detección es léxica (normaliza el
+comando y compara tokens), así que cubre los descuidos y los atajos habituales, pero un dev decidido a
+evadirlo puede hacerlo. El propio script documenta, en su `NOTA DE ALCANCE`
+(`plugins/accurate-media/hooks/guard-master.sh`), qué formas de evasión quedan deliberadamente fuera y
+por qué perseguirlas una por una no es una carrera que un hook léxico pueda ganar.
+
+Por eso **la defensa real es la protección de rama de GitHub sobre `master`**: es obligatorio
+configurarla, exigiendo Pull Request y al menos una revisión antes de mergear. El hook solo protege a
+quien tiene el plugin instalado y corriendo; la protección de rama en GitHub protege a todo el equipo,
+sin excepción, incluso frente a un push hecho fuera de Claude Code.
+
+## Desarrollo del propio marketplace
+
+Dos suites verifican la integridad del repositorio:
+
+```bash
+./scripts/validate.sh
+```
+
+Comprueba que `marketplace.json` y cada `plugin.json` son JSON válido, que cada `SKILL.md` tiene
+frontmatter correcto (`name` coincidiendo con la carpeta, `description` presente y dentro del límite de
+tamaño) y que las referencias que citan existen. Éxito: `Todo correcto`, exit 0.
+
+```bash
+./plugins/accurate-media/hooks/test-guard-master.sh
+```
+
+Arnés de pruebas adversarial para `guard-master.sh`: comandos que deben denegarse, comandos que deben
+permitirse, y los intentos de evasión conocidos (comillas, subshells, backslashes, comillas ANSI-C,
+acentos graves, envoltorios como `eval`/`sudo`/`bash -c`, etc.). Éxito: todas las líneas en `ok`,
+`N pasadas, 0 falladas`, exit 0.
+
+Corre ambas antes de dar por buena cualquier cambio en `plugins/accurate-media/`.
