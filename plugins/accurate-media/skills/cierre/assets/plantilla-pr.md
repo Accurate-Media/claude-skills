@@ -19,7 +19,7 @@ Closes #{número}  <!-- usa "Closes/Fixes" solo si el PR completa el issue; si n
 
 ## Checklist
 - [ ] La rama destino es `master` y llega por Pull Request (nunca push directo)
-- [ ] El nombre de la rama sigue `<dev>/<tipo>/<issue>-<slug>`
+- [ ] El nombre de la rama sigue la convención de `normas/references/git.md`
 - [ ] Pruebas unitarias en verde
 - [ ] Sin números mágicos ni secretos hardcodeados
 - [ ] Nombres y estructura siguen las normas del equipo

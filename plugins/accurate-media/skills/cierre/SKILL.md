@@ -50,11 +50,10 @@ Va **antes** del commit para que no se cuele nada en él.
 git rev-parse --abbrev-ref HEAD
 ```
 
-Debe ser una rama de funcionalidad que siga la convención de `normas/references/git.md`
-(`<dev>/<tipo>/<issue>-<slug>`). Si devuelve `master` o `main`, **detente**: el hook `guard-master` va
-a denegar el commit de todos modos. Su detección es léxica, no una garantía —un dev decidido puede
-evadirla—, así que no es lo único que te protege aquí; aun así, es la señal rápida de que algo está
-mal. Ayuda al dev a mover el trabajo a una rama correcta con la skill `arranque`.
+Debe ser una rama de funcionalidad que siga la convención de `normas/references/git.md`. Si devuelve
+`master` o `main`, **detente**: el hook `guard-master` va a denegar el commit de todos modos, aunque no
+es una garantía —ver sus límites como defensa en `normas/references/git.md`. Ayuda al dev a mover el
+trabajo a una rama correcta con la skill `arranque`.
 
 ## Paso 4 — Pruebas
 
@@ -100,6 +99,8 @@ git push -u origin <rama-actual>
 gh pr create --base master --head <rama-actual> \
   --title "<tipo>(<alcance>): <descripción> — <dev>" --body-file <archivo-pr>
 ```
+
+Si el trabajo no tiene issue asociado, omite el `-m "fix #<issue>"` del commit.
 
 Construye el cuerpo del PR a partir de `assets/plantilla-pr.md`. Devuélvele al dev la URL del PR que
 imprime `gh`.
