@@ -7,6 +7,23 @@ equipo.
 
 ## Instalación
 
+> ### ⚠️ Antes de nada: desinstala los plugins v1
+>
+> Este marketplace publicaba antes dos plugins sueltos, `normas@accurate-media` y
+> `cierre@accurate-media`. Ya no están en el catálogo, pero `/plugin marketplace update` **no
+> desinstala lo que cada quien ya tenía instalado**: las copias viejas siguen activas en tu sesión.
+>
+> Si no las quitas acabarás con **dos skills `cierre` que se contradicen**: la vieja abre el Pull
+> Request «hacia dev o release (NUNCA hacia master)» y la nueva lo abre hacia `master`. Claude cargará
+> una de las dos, y no puedes saber cuál.
+>
+> ```
+> /plugin uninstall normas@accurate-media
+> /plugin uninstall cierre@accurate-media
+> ```
+>
+> Si nunca instalaste esos dos plugins, sáltate este paso.
+
 Desde una sesión de Claude Code:
 
 ```
@@ -14,7 +31,11 @@ Desde una sesión de Claude Code:
 /plugin install accurate-media@accurate-media
 ```
 
+Si ya tenías este marketplace añadido de antes, en lugar de `add` refresca el catálogo con
+`/plugin marketplace update accurate-media` y luego instala.
+
 Con eso quedan disponibles las cinco skills y el hook de protección de `master` descritos abajo.
+Comprueba con `/plugin` que en la lista de instalados solo aparece `accurate-media@accurate-media`.
 
 ## Catálogo de skills
 
@@ -43,19 +64,27 @@ No se repite aquí.
 
 ## El hook `guard-master`
 
-El plugin instala un hook `PreToolUse` que intercepta comandos `Bash` y **deniega**:
+El plugin instala un hook `PreToolUse` que intercepta comandos `Bash` y deniega los que aterrizarían en
+`master` o `main`. Los casos habituales que cubre —**no es la lista completa**, es la muestra de lo que
+te vas a encontrar:
 
 - `git commit` directo sobre `master` o `main`.
-- `git push` cuyo destino es `master` o `main` (refspec explícito o rama de destino nombrada).
-- `git push` sin destino explícito estando parado en `master` o `main`.
+- `git push` cuyo destino es `master` o `main` (refspec explícito, `HEAD:master`, `+master`, etc.).
+- `git push` sin destino explícito estando parado en `master` o `main`. Cuentan como «sin destino»
+  `git push origin HEAD` y `git push origin @`: `HEAD` y `@` son la rama actual, no un destino
+  distinto. `git push origin HEAD:otra-rama` sí nombra otro destino y se permite.
 - `git push --all` y `git push --mirror` **sin importar la rama en la que estés parado**: ambos
   empujan todas las ramas locales al remoto, `master` incluida, incluso desde una rama de feature.
+- Las mismas órdenes escondidas tras comillas, subshells, backslashes, `&&`/`;`/`&`, o envoltorios
+  como `eval`, `sudo`, `env`, `xargs` y `bash -c`.
 
 Es una red de seguridad rápida y local, no un parser de shell: la detección es léxica (normaliza el
 comando y compara tokens), así que cubre los descuidos y los atajos habituales, pero un dev decidido a
 evadirlo puede hacerlo. El propio script documenta, en su `NOTA DE ALCANCE`
 (`plugins/accurate-media/hooks/guard-master.sh`), qué formas de evasión quedan deliberadamente fuera y
-por qué perseguirlas una por una no es una carrera que un hook léxico pueda ganar.
+por qué perseguirlas una por una no es una carrera que un hook léxico pueda ganar. También puede
+denegar de más en algún caso raro (una cadena que solo *menciona* `git push origin master` dentro de
+un `echo`): el intercambio va a propósito en la dirección segura.
 
 Por eso **la defensa real es la protección de rama de GitHub sobre `master`**: es obligatorio
 configurarla, exigiendo Pull Request y al menos una revisión antes de mergear. El hook solo protege a
@@ -81,7 +110,7 @@ tamaño) y que las referencias que citan existen. Éxito: `Todo correcto`, exit 
 Arnés de pruebas adversarial para `guard-master.sh`: comandos que deben denegarse, comandos que deben
 permitirse, y los intentos de evasión conocidos (comillas, subshells, backslashes, comillas ANSI-C,
 acentos graves, envoltorios como `eval`/`sudo`/`bash -c`, etc.). Éxito: todas las líneas en `ok` y un
-resumen final `71 pasadas, 0 falladas`, exit 0 (número correcto a esta fecha; sube cada vez que se
+resumen final `99 pasadas, 0 falladas`, exit 0 (número correcto a esta fecha; sube cada vez que se
 añade un caso nuevo — lo que importa es `0 falladas`, no que el primer número coincida al dígito con lo
 que veas).
 
