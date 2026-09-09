@@ -84,6 +84,11 @@ nuevo, el stash se recupera ahí (el stash es del repositorio, no del worktree):
 git stash pop
 ```
 
+Si además hay commits ya hechos sobre el `master` local (`git log origin/master..master --oneline`),
+el stash y el worktree nuevo no se los llevan: siguen apuntados desde el `master` local. Devuélvelo a
+su sitio con `git branch -f master origin/master` desde fuera del worktree, y **confírmalo con el dev
+antes de tocarlo**.
+
 No sigas al Paso 4 hasta que `git rev-parse --abbrev-ref HEAD` devuelva la rama de funcionalidad y
 `git status` muestre los cambios donde deben estar.
 

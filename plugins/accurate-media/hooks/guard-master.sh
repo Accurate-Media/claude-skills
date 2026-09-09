@@ -44,7 +44,7 @@ normalizar() { printf '%s' "$1" | tr -d "\$()'\"\`\\\\"; }
 # Quita del inicio del segmento las palabras que solo envuelven al comando de verdad,
 # repetidamente por si se apilan, para que el push siga viéndose como un comando git:
 #   - envoltorios:        eval "git push origin master" / sudo git push origin master
-#                         nohup / env / xargs git push origin master
+#                         nohup / env / xargs / command / time git push origin master
 #   - asignación previa:  GIT_DIR=x git push origin master / env FOO=1 git push ...
 #   - palabras clave:     if ...; then git push; fi   /   while ...; do git commit; done
 #                         if ...; else git push; fi
@@ -57,6 +57,11 @@ normalizar() { printf '%s' "$1" | tr -d "\$()'\"\`\\\\"; }
 # Para el puñado corto y fijo de banderas que se llevan un valor aparte —y solo para el
 # envoltorio que las define: 'sudo -u <user>', 'xargs -n <n>', 'env -u <var>'— se salta
 # también el token siguiente. No es un parser de opciones: es una lista literal.
+# Queda fuera de esa lista, a propósito, 'env -S' ('--split-string'): a diferencia de
+# '-u <var>' o '-n <n>', su valor no es un nombre suelto sino una línea de comando
+# completa ('env -S "git push origin master"'), y saltársela como si fuera un valor
+# cualquiera escondería el 'git' que el hook busca. Es la misma razón por la que '-c'
+# queda fuera de la lista de bash/sh/zsh/dash/ksh.
 # '(' no hace falta en esta lista: normalizar() ya lo borra antes de llegar aquí.
 # Queda fuera, y es deliberado, el envoltorio que se lleva su propio argumento sin
 # bandera que lo anuncie ('timeout 5 git push origin master'): saltarlo exigiría saber
@@ -102,7 +107,7 @@ quitar_envoltura() {
       eval|command|time)           envuelto=1; con_valor=""; s="$resto" ;;
       nohup)                       envuelto=1; con_valor=""; s="$resto" ;;
       sudo)                        envuelto=1; con_valor="-u -g -p -C -D -R -T -h"; s="$resto" ;;
-      env)                         envuelto=1; con_valor="-u -C -S"; s="$resto" ;;
+      env)                         envuelto=1; con_valor="-u -C"; s="$resto" ;;
       xargs)                       envuelto=1; con_valor="-n -I -i -P -d -L -s -E -a"; s="$resto" ;;
       then|do|else|'{')            envuelto=1; con_valor=""; s="$resto" ;;
       bash|sh|zsh|dash|ksh)        envuelto=1; con_valor="-o"; s="$resto" ;;

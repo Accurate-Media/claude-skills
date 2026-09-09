@@ -170,6 +170,10 @@ verificar deny  noel/feat/42-x       '/usr/bin/sudo git push origin master'
 verificar deny  noel/feat/42-x       'env -i git push origin master'
 verificar deny  noel/feat/42-x       'xargs -n 1 git push origin master'
 verificar deny  master               'bash -lc "git push"'
+verificar deny  master               'env -S "git push origin master"'
+verificar deny  noel/feat/42-x       'env -S "git push origin master"'
+verificar deny  master               'env -S git push origin master'
+verificar deny  noel/feat/42-x       'env -S git push origin master'
 
 # --- permite: contra el sobrebloqueo de la normalización --------------------
 verificar allow noel/feat/42-x       'git push origin '\''noel/feat/42-x'\'''
@@ -196,6 +200,8 @@ verificar allow master               'git -c push.default=simple log --oneline'
 verificar allow master               'bash -lc "npm test"'
 verificar allow master               'sudo -u noel npm run build'
 verificar allow master               'xargs -n 1 echo hola'
+verificar allow master               'env -S "npm test"'
+verificar allow noel/feat/42-x       'env -S "npm test"'
 
 # --- degradación segura ----------------------------------------------------
 en_rama master
