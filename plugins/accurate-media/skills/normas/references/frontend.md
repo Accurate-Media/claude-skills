@@ -35,7 +35,7 @@ src/
 
 **1. Use Cases** — lógica de negocio agnóstica de la UI. Orquestan servicios y aplican reglas.
 ```js
-import { fetchProducts } from "../../services/api";
+import { fetchProducts } from "../../services/productService";
 
 export const getActiveProducts = async () => {
   try {
@@ -151,8 +151,6 @@ Los adaptadores viven en `src/adapters/`. (Ejemplo en la skill `normas`, secció
   (registra la decisión en un ADR antes de adoptarla).
 - **Enrutamiento:** React Router DOM, configurado en `src/router/`.
 
-## Pruebas (frontend)
+## Pruebas
 
-- Framework recomendado: **Vitest** + React Testing Library (encaja nativo con Vite).
-- Qué probar: casos de uso, hooks y utils (la lógica). Los componentes presentacionales puros casi no
-  necesitan prueba unitaria; si tienen interacción, prueba el comportamiento, no la implementación.
+Cómo se prueba el frontend está en la skill `pruebas`. Consúltala antes de escribir tests.

@@ -1,7 +1,6 @@
 ---
 name: normas
-#prettier-ignore
-description: "Estándares de programación obligatorios de Accurate Media. Úsala SIEMPRE que escribas, edites, refactorices o revises código en este proyecto —frontend (React 19 + Vite + Shadcn) o backend (Spring Boot + MongoDB + Gradle)—, aunque el dev no las mencione explícitamente. Cubre convenciones de nombres, Clean Code (sin números mágicos, guard clauses, responsabilidad única, límites de tamaño), arquitectura por capas (Use Cases/Services, Hooks, Componentes, Adaptadores), patrones de diseño, reglas de Git (Conventional Commits y NUNCA push a master) y política de librerías. Si vas a generar o cambiar código y no recuerdas la convención exacta, consulta esta skill en vez de improvisar: el código del equipo debe verse como si lo hubiera escrito una sola persona."
+description: Estándares de programación obligatorios de Accurate Media. Úsala siempre que escribas, edites, refactorices o revises código —frontend (React 19 + Vite + Shadcn) o backend (Spring Boot + MongoDB + Gradle)—, aunque el dev no lo pida. Cubre convenciones de nombres, Clean Code (sin números mágicos, guard clauses, responsabilidad única, límites de tamaño), arquitectura por capas, patrón adaptador, política de dependencias y las reglas de Git del equipo. Si vas a generar o cambiar código y no recuerdas la convención exacta, consulta esta skill en vez de improvisar: el código del equipo debe verse como si lo hubiera escrito una sola persona.
 ---
 
 # Normas de programación — Accurate Media
@@ -14,6 +13,7 @@ Primero las reglas universales (aplican a frontend y backend). Luego, según en 
 
 - **Frontend** (React, Vite, Shadcn, hooks, componentes): lee `references/frontend.md`.
 - **Backend** (Spring Boot, MongoDB, Gradle, Java): lee `references/backend.md`.
+- **Git** (ramas, commits, Pull Requests): lee `references/git.md`.
 
 ---
 
@@ -91,13 +91,13 @@ El detalle por capa (dónde viven los adaptadores, cómo se usan) está en cada 
 
 ## 5. Reglas de Git
 
-- **PROHIBIDO push directo a `master` (y `main`).** Ahí vive el código en producción del cliente. `master`
-  recibe código solo vía Pull Request. El destino de los PR es `dev` o `release`.
-- Una rama por funcionalidad o corrección, partiendo de `dev`.
-- **Conventional Commits**, enlazando el issue:
-  `<tipo>(<alcance>): <descripción>` con tipos `feat | fix | docs | style | refactor | test | chore`.
-  Ej: `feat(cart): agrega cálculo de impuestos. fix #42`.
-- (El flujo completo de commit + PR + documentación lo ejecuta la skill **`cierre`** al final de la sesión.)
+Trunk-based: `master` es la única rama de larga vida y solo recibe código vía Pull Request. Nunca hagas
+commit ni push directamente sobre `master`/`main` — el hook `guard-master` lo bloquea.
+
+La política completa (nombre de rama, formato de commit, título y cuerpo del PR) está en
+`references/git.md`. Es la fuente única: no la repitas en ningún otro sitio.
+
+El ciclo lo ejecutan las skills `arranque` (rama + worktree) y `cierre` (commit + PR).
 
 ## 6. Política de librerías y dependencias
 

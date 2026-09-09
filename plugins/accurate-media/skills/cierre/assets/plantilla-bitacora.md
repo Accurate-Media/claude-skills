@@ -1,6 +1,6 @@
-# Bitácora — {AAAA-MM-DD}
+# Bitácora — {AAAA-MM-DD} · {rama}
 
-## Sesión {hora inicio}–{hora fin} · {Nombre del dev}
+## {hora inicio}–{hora fin} · {Nombre del dev}
 
 **Issue(s):** #{número} — {título del issue}
 **Rama:** {nombre-de-rama}

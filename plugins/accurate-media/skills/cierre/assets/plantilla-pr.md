@@ -1,6 +1,8 @@
 ## Resumen
 {Qué resuelve este PR en una o dos frases.}
 
+**Dev:** {dev}
+
 ## Issue
 Closes #{número}  <!-- usa "Closes/Fixes" solo si el PR completa el issue; si no, solo "#número" -->
 
@@ -16,7 +18,8 @@ Closes #{número}  <!-- usa "Closes/Fixes" solo si el PR completa el issue; si n
 - {Algo que el revisor deba saber. Enlaza ADR si lo hay.}
 
 ## Checklist
-- [ ] La rama destino es `dev` o `release` (NO `master`)
+- [ ] La rama destino es `master` y llega por Pull Request (nunca push directo)
+- [ ] El nombre de la rama sigue la convención del equipo (`<dev>/<tipo>/<issue>-<slug>`)
 - [ ] Pruebas unitarias en verde
 - [ ] Sin números mágicos ni secretos hardcodeados
 - [ ] Nombres y estructura siguen las normas del equipo
