@@ -43,9 +43,13 @@ No se repite aquí.
 
 ## El hook `guard-master`
 
-El plugin instala un hook `PreToolUse` que intercepta comandos `Bash` y **deniega** los `git commit` y
-`git push` que aterrizarían en `master` o `main` — commit directo sobre esas ramas, push que las tiene
-como destino, o un push sin destino explícito estando parado en ellas.
+El plugin instala un hook `PreToolUse` que intercepta comandos `Bash` y **deniega**:
+
+- `git commit` directo sobre `master` o `main`.
+- `git push` cuyo destino es `master` o `main` (refspec explícito o rama de destino nombrada).
+- `git push` sin destino explícito estando parado en `master` o `main`.
+- `git push --all` y `git push --mirror` **sin importar la rama en la que estés parado**: ambos
+  empujan todas las ramas locales al remoto, `master` incluida, incluso desde una rama de feature.
 
 Es una red de seguridad rápida y local, no un parser de shell: la detección es léxica (normaliza el
 comando y compara tokens), así que cubre los descuidos y los atajos habituales, pero un dev decidido a
@@ -76,7 +80,9 @@ tamaño) y que las referencias que citan existen. Éxito: `Todo correcto`, exit 
 
 Arnés de pruebas adversarial para `guard-master.sh`: comandos que deben denegarse, comandos que deben
 permitirse, y los intentos de evasión conocidos (comillas, subshells, backslashes, comillas ANSI-C,
-acentos graves, envoltorios como `eval`/`sudo`/`bash -c`, etc.). Éxito: todas las líneas en `ok`,
-`N pasadas, 0 falladas`, exit 0.
+acentos graves, envoltorios como `eval`/`sudo`/`bash -c`, etc.). Éxito: todas las líneas en `ok` y un
+resumen final `71 pasadas, 0 falladas`, exit 0 (número correcto a esta fecha; sube cada vez que se
+añade un caso nuevo — lo que importa es `0 falladas`, no que el primer número coincida al dígito con lo
+que veas).
 
 Corre ambas antes de dar por buena cualquier cambio en `plugins/accurate-media/`.
