@@ -91,8 +91,8 @@ El detalle por capa (dónde viven los adaptadores, cómo se usan) está en cada 
 
 ## 5. Reglas de Git
 
-Trunk-based: `master` es la única rama de larga vida y solo recibe código vía Pull Request. Nunca
-commitees ni pushees directamente sobre `master`/`main` — el hook `guard-master` lo bloquea.
+Trunk-based: `master` es la única rama de larga vida y solo recibe código vía Pull Request. Nunca hagas
+commit ni push directamente sobre `master`/`main` — el hook `guard-master` lo bloquea.
 
 La política completa (nombre de rama, formato de commit, título y cuerpo del PR) está en
 `references/git.md`. Es la fuente única: no la repitas en ningún otro sitio.

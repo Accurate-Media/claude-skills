@@ -58,6 +58,7 @@ Tipos: `feat | fix | docs | style | refactor | test | chore`.
 
 Las palabras clave de cierre (`fix #N`, `close #N`, `resolves #N`) hacen que GitHub cierre el issue al
 mergear el PR. Úsalas cuando el trabajo completa el issue; si solo avanza, referencia con `#N` a secas.
+Si el trabajo no tiene issue asociado, la línea de cierre se omite por completo.
 
 ## Pull Request
 
