@@ -2,11 +2,27 @@
 
 - **Unitarias:** JUnit 5 + Mockito. Prueba los **Service** mockeando el repositorio. Cubre camino
   feliz + caso de error (no encontrado, stock 0, input inválido).
-- **Integración:** Testcontainers con un contenedor de MongoDB real para validar repositorios y el
-  flujo controller→service→repo. **No uses Mongo embebido: está obsoleto.**
+- **Integración:** Testcontainers con un contenedor de la **base de datos real del repo** para validar
+  repositorios y el flujo controller→service→repo. Nunca una base embebida o en memoria: no reproduce
+  el comportamiento del motor de verdad.
 - **Mapper:** prueba pura, sin Spring, incluyendo el caso defensivo (campo nulo → valor por defecto).
 - Comando: `./gradlew test`. Las pruebas deben pasar antes de cualquier commit (lo verifica la skill
   `cierre`).
+
+> **El contenedor lo dicta el repo, no esta referencia.** Los ejemplos de abajo usan MongoDB porque es
+> el stack del proyecto de referencia. Antes de escribir un IT, mira `build.gradle` y la carpeta de
+> migraciones para saber contra qué te vas a conectar de verdad:
+>
+> | motor del repo | anotación | contenedor | nota |
+> |---|---|---|---|
+> | MongoDB | `@DataMongoTest` | `MongoDBContainer` | el ejemplo de abajo |
+> | Postgres (Flyway/JPA) | `@DataJpaTest` o `@SpringBootTest` | `PostgreSQLContainer` | deja que Flyway aplique las migraciones sobre el contenedor; así el IT prueba el esquema real, incluidas las FK y los CHECK |
+>
+> Un repo puede tener los dos a la vez si está a medio migrar: entonces cada IT usa el motor de la
+> tabla o colección que prueba, no el que sea más cómodo.
+
+Y recuerda: **sin Docker arriba, los IT fallan en masa con `initializationError`** y no es culpa de tu
+cambio (ver la sección de comandos de la skill `pruebas`).
 
 A continuación, un ejemplo real y compilable por cada tipo, sobre la feature `product` (ver la
 estructura de paquetes en `../../normas/references/backend.md`).

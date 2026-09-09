@@ -79,6 +79,30 @@ git worktree add ../<repo>-worktrees/<dev>-<tipo>-<slug> -b <dev>/<tipo>/<issue>
 El worktree es **hermano** del repositorio, no va dentro: así no ensucia búsquedas ni necesita
 entradas en `.gitignore` del árbol de trabajo.
 
+### Si el proyecto son varios repos dentro de una carpeta
+
+Algunos proyectos son una carpeta que es **a su vez un repo git** y contiene otros repos
+independientes anidados (backend, frontend, gateway…). Ahí «hermano del repositorio» se vuelve
+ambiguo: un hermano del subrepo cae **dentro** del repo contenedor, que es justo lo que la regla
+evita. En ese caso el worktree va hermano de la **carpeta raíz**:
+
+```bash
+# proyecto en ~/REPOS/PROY, con ~/REPOS/PROY/back y ~/REPOS/PROY/front dentro
+git -C ~/REPOS/PROY/back worktree add \
+    ~/REPOS/PROY-wt/back-<dev>-<tipo>-<slug> \
+    -b <dev>/<tipo>/<issue>-<slug> origin/master
+```
+
+**Y arranca la sesión en la carpeta raíz, no dentro de un worktree.** Una sesión que empieza dentro de
+un worktree queda aislada a él: el harness le deniega toda operación git sobre cualquier otro repo
+—`git -C`, `cd` y hasta desactivar el sandbox— así que no podrá crear ni leer el worktree del otro
+repo, y un trabajo que toque backend y frontend se queda a medias. Desde la raíz sí funciona, porque
+los subrepos cuentan como anidados.
+
+Si el trabajo abarca dos repos, son **dos ramas y dos Pull Requests**, uno por repo, y hay que decidir
+el orden de despliegue: normalmente el backend primero, o el frontend queda hablando con una API que
+todavía no existe.
+
 Nota sobre el hook `guard-master`: bloquea el commit y el push directos sobre `master`, y por eso
 importa arrancar siempre con una rama de funcionalidad ya creada. Su detección es léxica —un dev
 decidido a saltársela puede evadirla—; la defensa real es la *branch protection* de GitHub sobre

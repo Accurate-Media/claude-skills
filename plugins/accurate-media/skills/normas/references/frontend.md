@@ -31,6 +31,21 @@ src/
 └── main.jsx
 ```
 
+### En un repo que ya existe, manda el repo
+
+Este árbol es el de un **proyecto nuevo**. Un repo con historia puede tener los mismos papeles en
+otras carpetas —la UI agrupada bajo `src/ui/`, la lógica de negocio por entidad en
+`src/domain/<entidad>/`, los adaptadores en `src/infrastructure/repositories/`— y entonces tu código
+va donde el repo ya lo pone.
+
+Lo que **no** es negociable es el flujo: la UI nunca llama a la API directamente, y nada consume la
+respuesta cruda sin pasar por un adaptador. Los nombres de las carpetas son convención; el sentido de
+las flechas es la norma.
+
+Antes de crear una carpeta nueva, comprueba que ese papel no exista ya con otro nombre. Añadir
+`src/services/` a un repo que ya resuelve eso en `src/infrastructure/` deja dos sitios para lo mismo
+— exactamente lo que estas normas existen para evitar.
+
 ## Las capas, en orden
 
 **1. Use Cases** — lógica de negocio agnóstica de la UI. Orquestan servicios y aplican reglas.

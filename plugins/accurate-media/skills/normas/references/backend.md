@@ -41,6 +41,27 @@ com.accuratemedia.marketplace
 └── MarketplaceApplication.java
 ```
 
+### En un repo que ya existe, manda el repo
+
+Esta estructura es la de un **servicio nuevo**. Un repo con historia puede estar organizado por
+**capa** en vez de por feature (`controller/`, `service/`, `persistence/`, `dto/` en la raíz del
+paquete) y tener un paquete raíz que no sigue este patrón. Eso **no es deuda que debas pagar de
+paso**: añade tu código donde el repo ya lo pone y sigue su nomenclatura.
+
+Reorganizar por feature es un cambio de estructura de los que se acuerdan en equipo y se fijan en un
+ADR — nunca un efecto colateral de una feature. Si la mezcla te estorba de verdad en la zona que
+tocas, señálalo al dev y propón el arreglo por separado.
+
+Lo mismo con el motor: el diagrama dice Mongo porque es el stack de referencia. Si el repo usa
+Postgres con Flyway y JPA, el **principio** sigue igual —el controller no habla con la base, el
+repositorio es la única capa que sí— y solo cambian los tipos: `JpaRepository` en vez de
+`MongoRepository`, `@Entity` en vez de `@Document`, y las migraciones son parte del cambio.
+
+**Migraciones Flyway:** el número de versión se toma de `origin/master` en el momento de abrir el PR,
+no cuando empiezas. Dos PR en paralelo eligen el mismo `V<N>`, la CI de PR no lo detecta porque cada
+rama por separado es válida, y quien mergea segundo tiene que renumerar. Compruébalo justo antes de
+publicar.
+
 ## Convenciones de nombres (Java)
 
 | Elemento | Convención | Ejemplo |
