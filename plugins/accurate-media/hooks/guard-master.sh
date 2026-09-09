@@ -49,29 +49,63 @@ normalizar() { printf '%s' "$1" | tr -d "\$()'\"\`\\\\"; }
 #   - palabras clave:     if ...; then git push; fi   /   while ...; do git commit; done
 #                         if ...; else git push; fi
 #   - apertura de grupo:  { git push; }
-#   - shell explícito:    bash -c "git push origin master"  (el '-c' solo puede quedar
-#                         al inicio después de quitar el nombre del shell)
+#   - shell explícito:    bash -c "git push origin master" / sh -exc "..." / bash -lc "..."
+#   - ruta al envoltorio: /bin/bash -c "..." / /usr/bin/sudo git push origin master
+#                         (se compara el último componente de la ruta)
+# Consumida ya una palabra envolvente, las banderas del propio envoltorio dejan de ser
+# parte del comando envuelto y se saltan: '-c', '-lc', '-exc', '--', '-i'...
+# Para el puñado corto y fijo de banderas que se llevan un valor aparte —y solo para el
+# envoltorio que las define: 'sudo -u <user>', 'xargs -n <n>', 'env -u <var>'— se salta
+# también el token siguiente. No es un parser de opciones: es una lista literal.
 # '(' no hace falta en esta lista: normalizar() ya lo borra antes de llegar aquí.
-# Queda fuera, y es deliberado, el envoltorio que se lleva su propio argumento
-# ('timeout 5 git push origin master'): saltarlo exigiría saber cuántos argumentos
-# consume cada programa, que es justo el parser que este hook no quiere ser.
+# Queda fuera, y es deliberado, el envoltorio que se lleva su propio argumento sin
+# bandera que lo anuncie ('timeout 5 git push origin master'): saltarlo exigiría saber
+# cuántos argumentos consume cada programa, que es justo el parser que este hook no
+# quiere ser.
 # Dirección del error: 'git' NO está en la lista, así que un segmento que ya empieza
 # por 'git ' rompe el bucle en la primera vuelta y sale intacto. Quitar palabras solo
 # puede destapar un comando git que antes quedaba oculto: nunca esconde uno.
 quitar_envoltura() {
-  local s primer resto
+  local s primer resto envuelto=0 con_valor=""
   s="$(printf '%s' "$1" | sed 's/^[[:space:]]*//')"
   while :; do
     case "$s" in
       *' '*) primer="${s%% *}"; resto="${s#* }" ;;
       *) break ;;
     esac
+
+    # banderas del envoltorio ya consumido
+    if [ "$envuelto" -eq 1 ]; then
+      case "$primer" in
+        -*)
+          s="$resto"
+          case " $con_valor " in
+            *" $primer "*)
+              case "$s" in
+                *' '*) s="${s#* }" ;;
+                *)     s="" ;;
+              esac
+              ;;
+          esac
+          continue
+          ;;
+      esac
+    fi
+
+    # prefijo de asignación: se comprueba sobre el token crudo, porque su valor puede
+    # ser una ruta ('GIT_DIR=/tmp/x') y quedarse con el último componente lo escondería.
     case "$primer" in
-      eval|sudo|command|time)      s="$resto" ;;
-      nohup|env|xargs)             s="$resto" ;;
-      then|do|else|'{')            s="$resto" ;;
-      bash|sh|zsh|dash|ksh|-c)     s="$resto" ;;
-      *=*)                         s="$resto" ;;   # prefijo de asignación
+      *=*) envuelto=1; con_valor=""; s="$resto"; continue ;;
+    esac
+
+    case "${primer##*/}" in
+      eval|command|time)           envuelto=1; con_valor=""; s="$resto" ;;
+      nohup)                       envuelto=1; con_valor=""; s="$resto" ;;
+      sudo)                        envuelto=1; con_valor="-u -g -p -C -D -R -T -h"; s="$resto" ;;
+      env)                         envuelto=1; con_valor="-u -C -S"; s="$resto" ;;
+      xargs)                       envuelto=1; con_valor="-n -I -i -P -d -L -s -E -a"; s="$resto" ;;
+      then|do|else|'{')            envuelto=1; con_valor=""; s="$resto" ;;
+      bash|sh|zsh|dash|ksh)        envuelto=1; con_valor="-o"; s="$resto" ;;
       *) break ;;
     esac
   done
@@ -86,13 +120,19 @@ quitar_envoltura() {
 #   - expansión de llaves:        git push origin mas{ter,} / ma{s..s}ter
 #   - escapes hexadecimales:      git push origin $'\x6daster' / ma$'\x73'ter
 #   - sustitución sin el nombre:  git push origin $(rama_actual) / `rama_actual`
+#   - envoltorio que se come su propio argumento: timeout 5 git push origin master
 # Ninguna de esas formas se teclea sin intención inequívoca. Perseguirlas una a una
 # es una carrera que no se gana dentro de un hook cuyo contrato es degradar
 # permitiendo: cada metacarácter nuevo sería otro parche. Y no vale la recíproca:
 # escribir 'master' literal tampoco garantiza que se detecte, porque solo se examinan
-# los segmentos que, ya normalizados y sin envoltura, empiezan por 'git '. La defensa
-# de verdad es la protección de rama de GitHub sobre master; este hook es el aviso
-# local rápido que va por delante de ella.
+# los segmentos que, ya normalizados y sin envoltura, empiezan por 'git '.
+# En la dirección contraria —denegar de más— el separador de segmentos es tosco a
+# propósito: parte por ';', '&' y '|' aunque vengan dentro de una cadena entrecomillada,
+# así que 'echo "build & git push origin master"' se deniega sin empujar nada. Es un
+# falso rojo raro, visible al instante y fácil de sortear (parte el comando en dos), y
+# el intercambio va en la dirección segura.
+# La defensa de verdad es la protección de rama de GitHub sobre master; este hook es el
+# aviso local rápido que va por delante de ella.
 
 # ¿algún token del segmento (ya tokenizado) es exactamente esta bandera?
 tiene_bandera() {
@@ -142,13 +182,48 @@ apunta_protegida() {
   return 1
 }
 
-# ¿hay un refspec explícito tras el remoto? (1er token libre = remoto, 2º+ = refspec)
+# Devuelve los argumentos que siguen al subcomando 'push' en un segmento que ya se sabe
+# que es un push. Tokeniza en vez de recortar con '${seg#*push}': ese recorte se queda
+# con lo que va tras el PRIMER 'push' literal de la cadena, que puede ser el de una
+# bandera global ('git -c push.default=simple push') y dejaba el subcomando de verdad
+# contado como si fuera un destino.
+args_tras_push() {
+  local t saltar=0 visto=0 salida=""
+  for t in ${1#git}; do
+    if [ "$visto" -eq 1 ]; then salida="$salida $t"; continue; fi
+    if [ "$saltar" -eq 1 ]; then saltar=0; continue; fi
+    case "$t" in
+      -C|-c)   saltar=1 ;;
+      -*)      continue ;;
+      push)    visto=1 ;;
+      *)       break ;;
+    esac
+  done
+  printf '%s' "$salida"
+}
+
+# ¿hay un destino explícito, y distinto de la rama actual, tras el remoto?
+# (1er token libre = remoto, 2º y siguientes = refspecs)
+# 'HEAD' y '@' son sinónimos de "la rama en la que estoy parado": 'git push origin HEAD'
+# parado en master empuja master exactamente igual que 'git push' a secas, así que NO
+# cuenta como destino explícito y el push cae en la comprobación de rama protegida. Sí
+# cuenta 'HEAD:otra-rama', que nombra un destino distinto del actual y es legítimo
+# incluso desde master.
 destino_explicito() {
-  local t vistos=0
-  for t in ${1#*push}; do
+  local t dst vistos=0
+  for t in $(args_tras_push "$1"); do
     case "$t" in -*) continue ;; esac
     vistos=$((vistos + 1))
-    [ "$vistos" -ge 2 ] && return 0
+    [ "$vistos" -lt 2 ] && continue
+    t="${t#+}"
+    case "$t" in
+      *:*) dst="${t#*:}"; dst="${dst#+}"; dst="${dst#refs/heads/}" ;;
+      *)   dst="$t" ;;
+    esac
+    case "$dst" in
+      HEAD|@) continue ;;
+      *)      return 0 ;;
+    esac
   done
   return 1
 }
@@ -188,7 +263,7 @@ while IFS= read -r seg; do
       denegar "Bloqueado: ese push aterriza en una rama protegida (master/main). En Accurate Media master solo recibe código via Pull Request. Usa la skill 'arranque' para crear una rama <dev>/<tipo>/<issue>-<slug> y la skill 'cierre' para abrir el PR."
     fi
     if protegida "$rama" && ! destino_explicito "$seg_proc"; then
-      denegar "Bloqueado: estás parado en '$rama', una rama protegida, y ese push la enviaría al remoto. Usa la skill 'arranque' para mover el trabajo a una rama de funcionalidad."
+      denegar "Bloqueado: estás parado en '$rama', una rama protegida, y ese push la enviaría al remoto ('HEAD' y '@' son la rama actual, no un destino distinto). Usa la skill 'arranque' para mover el trabajo a una rama de funcionalidad."
     fi
   fi
   if es_git_sub "$seg_proc" commit && protegida "$rama"; then

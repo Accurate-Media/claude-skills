@@ -143,6 +143,34 @@ verificar deny  noel/feat/42-x       'nohup git push origin master'
 verificar deny  noel/feat/42-x       'GIT_DIR=x git push origin master'
 verificar deny  noel/feat/42-x       'env FOO=1 git push origin master'
 
+# --- deniega: 'HEAD'/'@' NO son un destino explícito (parado en protegida) --
+# 'git push origin HEAD' es una de las grafías más habituales del push diario y
+# empuja master igual que 'git push' a secas: no puede contar como destino explícito.
+verificar deny  master               'git push origin HEAD'
+verificar deny  main                 'git push origin HEAD'
+verificar deny  master               'git push -u origin HEAD'
+verificar deny  master               'git push origin @'
+verificar deny  master               'git push origin +HEAD'
+verificar deny  master               'git push --force origin HEAD'
+verificar deny  master               'git push origin HEAD HEAD'
+
+# --- deniega: el subcomando 'push' no se busca por texto suelto -------------
+# '-c push.default=simple' contiene la palabra 'push' antes que el subcomando.
+verificar deny  master               'git -c push.default=simple push'
+verificar deny  master               'git -c push.default=current push origin HEAD'
+verificar deny  noel/feat/42-x       'git -c push.default=simple push origin master'
+
+# --- deniega: envoltorios con opciones --------------------------------------
+verificar deny  noel/feat/42-x       'bash -lc "git push origin master"'
+verificar deny  noel/feat/42-x       '/bin/bash -c "git push origin master"'
+verificar deny  noel/feat/42-x       'sh -exc "git push origin master"'
+verificar deny  noel/feat/42-x       'bash -c -- "git push origin master"'
+verificar deny  noel/feat/42-x       'sudo -u noel git push origin master'
+verificar deny  noel/feat/42-x       '/usr/bin/sudo git push origin master'
+verificar deny  noel/feat/42-x       'env -i git push origin master'
+verificar deny  noel/feat/42-x       'xargs -n 1 git push origin master'
+verificar deny  master               'bash -lc "git push"'
+
 # --- permite: contra el sobrebloqueo de la normalización --------------------
 verificar allow noel/feat/42-x       'git push origin '\''noel/feat/42-x'\'''
 verificar allow master               'git log --all --oneline'
@@ -159,6 +187,15 @@ verificar allow master               'bash -c "npm test"'
 verificar allow master               'command -v git'
 verificar allow master               'nohup npm run watch'
 verificar allow master               'GIT_PAGER=cat git log --oneline'
+verificar allow noel/feat/42-x       'git push origin HEAD'
+verificar allow noel/feat/42-x       'git push origin HEAD:otra-rama'
+verificar allow master               'git push origin HEAD:otra-rama'
+verificar allow master               'git push origin HEAD:refs/heads/otra-rama'
+verificar allow noel/feat/42-x       'git -c push.default=simple push'
+verificar allow master               'git -c push.default=simple log --oneline'
+verificar allow master               'bash -lc "npm test"'
+verificar allow master               'sudo -u noel npm run build'
+verificar allow master               'xargs -n 1 echo hola'
 
 # --- degradación segura ----------------------------------------------------
 en_rama master
