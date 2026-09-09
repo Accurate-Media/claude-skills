@@ -1,9 +1,9 @@
 ## Resumen
 {Qué resuelve este PR en una o dos frases.}
 
-## Issue
 **Dev:** {dev}
 
+## Issue
 Closes #{número}  <!-- usa "Closes/Fixes" solo si el PR completa el issue; si no, solo "#número" -->
 
 ## Cambios
@@ -19,7 +19,7 @@ Closes #{número}  <!-- usa "Closes/Fixes" solo si el PR completa el issue; si n
 
 ## Checklist
 - [ ] La rama destino es `master` y llega por Pull Request (nunca push directo)
-- [ ] El nombre de la rama sigue la convención de `normas/references/git.md`
+- [ ] El nombre de la rama sigue la convención del equipo (`<dev>/<tipo>/<issue>-<slug>`)
 - [ ] Pruebas unitarias en verde
 - [ ] Sin números mágicos ni secretos hardcodeados
 - [ ] Nombres y estructura siguen las normas del equipo

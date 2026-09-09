@@ -22,9 +22,19 @@ por Pull Request.
 - **PROHIBIDO el commit directo sobre `master` (y `main`).**
 - **PROHIBIDO el push directo a `master` (y `main`).**
 
-El hook `guard-master` del plugin `accurate-media` deniega ambos comandos automáticamente. El hook es
-la primera línea de defensa, no la única: configura también *branch protection* en GitHub sobre
-`master` exigiendo Pull Request y al menos una revisión.
+El hook `guard-master` del plugin `accurate-media` deniega ambos comandos en cuanto los reconoce.
+
+**Hasta dónde llega el hook.** Su detección es *léxica*: normaliza el comando y compara tokens
+sueltos; no es un parser de shell. Cubre los descuidos y los atajos habituales —comillas, subshells,
+backslashes, envoltorios como `eval`, `sudo` o `bash -c`—, pero un dev decidido a evadirlo puede
+hacerlo, y además solo protege a quien tiene el plugin instalado y corriendo. El propio script
+enumera, en su `NOTA DE ALCANCE` (`plugins/accurate-media/hooks/guard-master.sh`), qué grafías quedan
+deliberadamente fuera y por qué.
+
+**La defensa real es la *branch protection* de GitHub sobre `master`**: configúrala exigiendo Pull
+Request y al menos una revisión. Protege a todo el equipo, sin excepción, incluso frente a un push
+hecho fuera de Claude Code. El hook es el aviso local rápido que va por delante de ella, no un
+sustituto.
 
 ## Nombre de la rama
 

@@ -2,7 +2,7 @@
 
 Para una feature `<f>` (kebab-case, ej. `product`) con entidad `<F>` (PascalCase, ej. `Product`).
 Si `<f>` es multi-palabra (`order-item`), usa camelCase en identificadores de código (`orderItem`) y
-kebab-case solo donde la convención de carpetas de `normas/references/frontend.md` lo pida.
+kebab-case solo donde la convención de carpetas de `../../normas/references/frontend.md` lo pida.
 
 Archivos, en orden de dependencia (cada capa solo depende de la anterior):
 

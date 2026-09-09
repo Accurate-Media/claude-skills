@@ -43,8 +43,8 @@ adivinada que compila y se ve razonable es el peor tipo de deuda técnica, porqu
   `references/frontend-scaffold.md`.
 - **Backend** (Document, DTOs, Mapper, Repository, Service, Controller): `references/backend-scaffold.md`.
 
-Cada referencia respeta la arquitectura descrita en `normas/references/frontend.md` y
-`normas/references/backend.md` respectivamente: no la repitas, ni te desvíes de ella al generar código.
+Cada referencia respeta la arquitectura descrita en `../normas/references/frontend.md` y
+`../normas/references/backend.md` respectivamente: no la repitas, ni te desvíes de ella al generar código.
 
 ## 4. Al terminar
 
@@ -52,3 +52,11 @@ Las pruebas que este scaffolding genera son **esqueletos**: marcan la forma del 
 o `@Test` con el nombre del comportamiento esperado) pero no aserciones de negocio, porque esa lógica
 todavía no existe. Recuérdale al dev que la skill `pruebas` tiene el estilo del equipo —ejemplos
 completos por tipo de prueba— para completarlas en cuanto la lógica esté definida.
+
+Y avísale de que los dos stacks no dejan el mismo punto de partida:
+
+- **Backend**: los esqueletos son `@Test` reales, con aserciones que fallan si el andamiaje se rompe.
+- **Frontend**: los esqueletos son `it.todo(...)`. Un `it.todo` **no ejercita nada y la suite pasa
+  igual**, así que una feature de frontend recién andamiada puede llegar en verde a la skill `cierre`
+  con cobertura cero. Completarlos no es opcional: es lo que convierte el andamiaje en trabajo
+  cerrable.

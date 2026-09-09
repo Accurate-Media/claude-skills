@@ -99,21 +99,19 @@ while IFS= read -r skill; do
     fallo "$skill: el frontmatter contiene una línea de comentario"
   fi
 
-  # referencias citadas que no existen.
-  # Acepta 'references/x.md' (dentro de la propia skill) y también
-  # 'otra-skill/references/x.md' (cita cruzada, ej. normas/references/git.md).
-  raiz_skills="$(dirname "$dir")"
+  # referencias citadas que no existen. La ruta se resuelve TAL CUAL está escrita y
+  # relativa al directorio de la propia skill, que es como la seguirá quien lea el
+  # SKILL.md: 'references/x.md' cae dentro de la skill y '../normas/references/git.md'
+  # es la cita cruzada a otra skill. Escribirla sin el '../' apunta a
+  # 'skills/<esta>/normas/references/git.md', que no existe, y aquí falla.
   while IFS= read -r ref; do
     [ -z "$ref" ] && continue
-    case "$ref" in
-      */references/*|*/assets/*) destino="$raiz_skills/$ref" ;;
-      *)                         destino="$dir/$ref" ;;
-    esac
+    destino="$dir/$ref"
     if [ ! -f "$destino" ]; then
       fallo "$skill: cita '$ref' pero no existe $destino"
     fi
   done <<EOF
-$(grep -oE '([a-z][a-z-]*/)?(references|assets)/[A-Za-z0-9._-]+\.md' "$skill" | sort -u)
+$(grep -oE '(\.\./)*([a-z][a-z-]*/)?(references|assets)/[A-Za-z0-9._-]+\.md' "$skill" | sort -u)
 EOF
 
   [ "$FALLOS" -eq "$fallos_previos" ] && ok "$skill"

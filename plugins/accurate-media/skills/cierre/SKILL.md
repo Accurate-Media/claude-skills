@@ -13,7 +13,7 @@ Ejecuta los pasos **en orden**. No saltes pasos ni los hagas en paralelo: cada u
 Si un paso no puede completarse (tests rojos, rama incorrecta, trabajo sin documentar), **detente y
 resuélvelo con el dev antes de continuar**. Nunca subas código a medias.
 
-La política de ramas, commits y Pull Request vive en `normas/references/git.md`. Esta skill la cita en
+La política de ramas, commits y Pull Request vive en `../normas/references/git.md`. Esta skill la cita en
 cada paso donde aplica; no la repite.
 
 ---
@@ -50,10 +50,42 @@ Va **antes** del commit para que no se cuele nada en él.
 git rev-parse --abbrev-ref HEAD
 ```
 
-Debe ser una rama de funcionalidad que siga la convención de `normas/references/git.md`. Si devuelve
+Debe ser una rama de funcionalidad que siga la convención de `../normas/references/git.md`. Si devuelve
 `master` o `main`, **detente**: el hook `guard-master` va a denegar el commit de todos modos, aunque no
-es una garantía —ver sus límites como defensa en `normas/references/git.md`. Ayuda al dev a mover el
-trabajo a una rama correcta con la skill `arranque`.
+es una garantía —ver sus límites como defensa en `../normas/references/git.md`.
+
+Y entonces **recupera el trabajo aquí mismo, sin mandarlo a empezar de cero**. Como el hook impide
+commitear sobre `master`, estar parado aquí significa por construcción tener cambios *sin commitear*:
+la skill `arranque` no sirve para esto —exige un árbol limpio y crea un worktree nuevo y vacío desde
+`origin/master`, no mueve nada—. Acuerda con el dev el nombre de la rama según la convención de
+`../normas/references/git.md` y aplica una de las dos salidas:
+
+**a) Mover la rama en el sitio** (lo habitual: los cambios sin commitear viajan con el cambio de rama):
+
+```bash
+git switch -c <rama-nueva>
+```
+
+Si además hay commits ya hechos sobre el `master` local (`git log origin/master..master --oneline`),
+la rama nueva se los lleva consigo, pero el `master` local se queda apuntando a ellos: devuélvelo a su
+sitio con `git branch -f master origin/master` desde fuera de esa rama, y **confírmalo con el dev
+antes de tocarlo**.
+
+**b) Guardar, arrancar y recuperar** (si el dev quiere además el worktree aislado de la sesión):
+
+```bash
+git stash push -u -m "cierre: trabajo pendiente en master"
+```
+
+Con el árbol ya limpio, la skill `arranque` crea la rama y el worktree; una vez dentro del worktree
+nuevo, el stash se recupera ahí (el stash es del repositorio, no del worktree):
+
+```bash
+git stash pop
+```
+
+No sigas al Paso 4 hasta que `git rev-parse --abbrev-ref HEAD` devuelva la rama de funcionalidad y
+`git status` muestre los cambios donde deben estar.
 
 ## Paso 4 — Pruebas
 
@@ -64,6 +96,9 @@ escribe y qué comandos correr vive en la skill `pruebas`; aquí solo la exigenc
 2. Escribe las pruebas que falten.
 3. Corre la suite completa. **Todas las pruebas deben pasar.** No avances al commit con tests en rojo:
    arregla el código o la prueba y vuelve a correr.
+4. **Una suite de solo `it.todo` no es una suite en verde.** Los esqueletos que genera la skill
+   `feature` pasan sin ejercitar nada; si la lógica nueva solo tiene `todo`s, faltan pruebas de verdad
+   (vuelve al punto 2).
 
 Reporta brevemente al dev: cuántas pruebas corrieron y qué cubren las nuevas.
 
@@ -90,7 +125,7 @@ actualiza esos documentos en el mismo cierre.
 
 ## Paso 6 — Commit, push y PR
 
-Formato del commit, título y cuerpo del PR: todo según `normas/references/git.md`. No lo repitas aquí.
+Formato del commit, título y cuerpo del PR: todo según `../normas/references/git.md`. No lo repitas aquí.
 
 ```bash
 git add <archivos>
@@ -119,10 +154,21 @@ Solo si se cumplen **las tres** condiciones:
 Si falta cualquiera, **conserva el worktree** y avísale por qué. Perder trabajo por limpiar demasiado
 pronto es el peor fallo posible de esta skill.
 
+No asumas la ruta: la skill `arranque` prefiere el soporte nativo de worktrees del harness, que puede
+colocarlo en otro sitio. Derívala del propio Git.
+
+```bash
+git rev-parse --show-toplevel        # ruta del worktree actual
+git worktree list                    # todos los worktrees; el principal es el primero
+```
+
 ```bash
 cd <ruta-del-repo-principal>          # el cwd no puede estar dentro del worktree
-git worktree remove ../<repo>-worktrees/<dev>-<tipo>-<slug>
+git worktree remove <ruta-del-worktree-de-la-sesión>
 ```
+
+Si el worktree lo creó el soporte nativo del harness, desmóntalo por esa misma vía; `git worktree
+remove` es el camino solo cuando lo creó Git.
 
 **No borres la rama local sin confirmación explícita**: ya vive en el remoto, pero el dev puede
 quererla para seguir trabajando.

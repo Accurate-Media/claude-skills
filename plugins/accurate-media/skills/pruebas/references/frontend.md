@@ -21,7 +21,7 @@ Prueba la regla de negocio y el error que propaga cuando el service falla. El se
 Implementación (`src/useCases/product/getProductList.js`):
 
 ```js
-import { fetchProducts } from "../../services/api";
+import { fetchProducts } from "../../services/productService";
 
 export const getActiveProducts = async () => {
   try {
@@ -38,9 +38,9 @@ Prueba (`src/useCases/product/getProductList.test.js`):
 ```js
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getActiveProducts } from "./getProductList";
-import { fetchProducts } from "../../services/api";
+import { fetchProducts } from "../../services/productService";
 
-vi.mock("../../services/api");
+vi.mock("../../services/productService");
 
 describe("getActiveProducts", () => {
   beforeEach(() => {

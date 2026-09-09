@@ -35,7 +35,7 @@ src/
 
 **1. Use Cases** — lógica de negocio agnóstica de la UI. Orquestan servicios y aplican reglas.
 ```js
-import { fetchProducts } from "../../services/api";
+import { fetchProducts } from "../../services/productService";
 
 export const getActiveProducts = async () => {
   try {

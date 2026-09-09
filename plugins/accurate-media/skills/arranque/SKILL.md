@@ -65,7 +65,7 @@ No lo derives de `git config user.name`: valores como `NOEL318` producen nombres
 <dev>/<tipo>/<issue>-<slug>
 ```
 
-según la convención de `normas/references/git.md`. Confirma el nombre propuesto con el dev antes de
+según la convención de `../normas/references/git.md`. Confirma el nombre propuesto con el dev antes de
 crear nada.
 
 ## Paso 6 — Crear el worktree y la rama

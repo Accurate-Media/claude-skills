@@ -9,7 +9,7 @@
   `cierre`).
 
 A continuación, un ejemplo real y compilable por cada tipo, sobre la feature `product` (ver la
-estructura de paquetes en `normas/references/backend.md`).
+estructura de paquetes en `../../normas/references/backend.md`).
 
 ## Service unitario
 

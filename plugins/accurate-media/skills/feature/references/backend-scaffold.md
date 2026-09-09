@@ -336,7 +336,12 @@ class <F>ServiceImplTest {
 }
 ```
 
-`<F>RepositoryIT.java` — Testcontainers con MongoDB real, nunca Mongo embebido:
+`<F>RepositoryIT.java` — Testcontainers con MongoDB real, nunca Mongo embebido.
+
+**Requiere Docker corriendo** en la máquina (y en CI) que ejecute `./gradlew test`, más las
+dependencias `org.testcontainers:mongodb` y `org.testcontainers:junit-jupiter` en `build.gradle`. Sin
+Docker esta prueba falla por entorno, no por código; díselo al dev al generarla para que no se lo
+encuentre en el cierre. Detalle en `../../pruebas/references/backend.md`.
 
 ```java
 package com.accuratemedia.<servicio>.<f>;
