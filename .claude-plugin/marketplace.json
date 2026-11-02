@@ -6,14 +6,14 @@
   },
   "metadata": {
     "description": "Marketplace interno de plugins de Claude Code de Accurate Media. Distribuye las skills oficiales del equipo a todos los desarrolladores de la organización.",
-    "version": "2.0.0"
+    "version": "2.1.0"
   },
   "plugins": [
     {
       "name": "accurate-media",
       "source": "./plugins/accurate-media",
       "description": "Normas de programación y ciclo completo de sesión de trabajo: arranque con worktree aislado, scaffolding por capas, pruebas, y cierre con documentación, commit y PR a master. Incluye un hook que bloquea commits y pushes directos sobre master.",
-      "version": "2.0.0",
+      "version": "2.1.0",
       "author": {
         "name": "Accurate Media",
         "email": "diana.ruiz@acmedia.com.mx"

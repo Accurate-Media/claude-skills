@@ -34,7 +34,7 @@ Desde una sesión de Claude Code:
 Si ya tenías este marketplace añadido de antes, en lugar de `add` refresca el catálogo con
 `/plugin marketplace update accurate-media` y luego instala.
 
-Con eso quedan disponibles las cinco skills y el hook de protección de `master` descritos abajo.
+Con eso quedan disponibles las cinco skills, los cinco agentes y el hook de protección de `master` descritos abajo.
 Comprueba con `/plugin` que en la lista de instalados solo aparece `accurate-media@accurate-media`.
 
 ## Catálogo de skills
@@ -61,6 +61,54 @@ vez que se escribe o revisa código.
 La política de ramas, commits y Pull Request que estas skills siguen vive en un único lugar:
 [`plugins/accurate-media/skills/normas/references/git.md`](plugins/accurate-media/skills/normas/references/git.md).
 No se repite aquí.
+
+## Equipo de agentes
+
+El plugin trae cinco subagentes. Quedan disponibles en cualquier repo y en cualquier sesión, así que
+puedes tener varias sesiones abiertas a la vez con el equipo completo en cada una.
+
+| Agente | Rol |
+|---|---|
+| `accurate-media:orquestador` | El master: descompone la tarea, fija los contratos entre capas, delega, encadena los traspasos y no da nada por terminado sin el veredicto de QA. |
+| `accurate-media:backend-engineer` | Endpoints, servicios, integraciones, mensajería y seguridad del lado servidor (Spring Boot). |
+| `accurate-media:db-engineer` | Esquema, migraciones Flyway sin caída (expandir/contraer), índices y consultas con `EXPLAIN`. |
+| `accurate-media:frontend-engineer` | Pantallas, componentes, hooks y llamadas a la API (React 19 + Vite + Shadcn). |
+| `accurate-media:qa-agent` | Revisión independiente del diff, pruebas que faltan y veredicto APROBADO / RECHAZADO con evidencia. |
+
+**Cómo se usan entre ellos.** El orquestador es quien encadena: arráncalo como agente principal de la
+sesión y él lanza a los demás (en paralelo cuando no dependen entre sí, cada uno en su worktree si
+tocan el mismo repo):
+
+```bash
+claude --agent accurate-media:orquestador
+```
+
+Para que un repo arranque siempre así, pon `"agent": "accurate-media:orquestador"` en su
+`.claude/settings.json`. Cada especialista termina su reporte con una sección `Traspaso` (lo que
+necesita de otro agente); el orquestador la lee y lanza al siguiente. Fuera del orquestador también
+puedes pedir uno directamente: «usa al db-engineer para revisar esta consulta».
+
+**Verlos en Zoetrope.** No hay que configurar nada: [`zoe`](https://github.com/furkankly/zoetrope) lee
+el transcript de la sesión y dibuja cada subagente con su nombre. Desde la carpeta del repo, `zoe`
+sigue la sesión viva más reciente; `zoe <id>` abre una concreta.
+
+### En Codex (backend y frontend)
+
+`backend-engineer` y `frontend-engineer` también existen como roles de Codex en `codex/agents/`.
+Cada quien los instala una vez desde un clon de este repo:
+
+```bash
+git clone https://github.com/Accurate-Media/claude-skills ~/REPOS/claude-skills
+~/REPOS/claude-skills/scripts/instalar-codex.sh
+```
+
+El script registra los roles en `~/.codex/config.toml` (bloque marcado, con respaldo en
+`config.toml.bak-accurate-media`; Codex no los descubre solo por carpeta) y enlaza las skills `normas` y
+`pruebas` en `~/.codex/skills`. Apunta al clon, así que `git pull` los actualiza. Luego, en Codex:
+«usa el agente backend-engineer para …». Se quita con `--desinstalar`.
+
+Los `.toml` **se generan** desde los `.md` de `plugins/accurate-media/agents/`: edita el `.md` y corre
+`./scripts/codex-agents.py`. `validate.sh` falla si quedaron desfasados.
 
 ## El hook `guard-master`
 

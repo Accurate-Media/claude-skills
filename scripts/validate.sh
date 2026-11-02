@@ -119,6 +119,32 @@ done <<EOF
 $SKILLS
 EOF
 
+# --- 9. cada agente (agents/*.md) ---------------------------------------
+while IFS= read -r agente; do
+  [ -z "$agente" ] && continue
+  esperado="$(basename "$agente" .md)"
+  fm="$(awk 'NR==1 && $0!="---"{exit} NR>1 && /^---$/{exit} NR>1' "$agente")"
+  nombre="$(printf '%s\n' "$fm" | sed -n 's/^name:[[:space:]]*//p' | head -1 | tr -d ' ')"
+  if [ -z "$fm" ]; then
+    fallo "$agente: sin frontmatter"
+  elif [ "$nombre" != "$esperado" ]; then
+    fallo "$agente: name '$nombre' no coincide con el archivo '$esperado'"
+  elif ! printf '%s\n' "$fm" | grep -q '^description:[[:space:]]*[^[:space:]]'; then
+    fallo "$agente: frontmatter sin 'description'"
+  else
+    ok "$agente"
+  fi
+done <<EOF
+$(find "$RAIZ/plugins" -path '*/agents/*.md' 2>/dev/null | sort)
+EOF
+
+# --- 10. los roles de Codex están al día con sus agentes ----------------
+if python3 "$RAIZ/scripts/codex-agents.py" --check; then
+  ok "codex/agents al día"
+else
+  fallo "codex/agents desfasado: corre scripts/codex-agents.py"
+fi
+
 if [ "$FALLOS" -gt 0 ]; then
   printf '\n%d fallo(s)\n' "$FALLOS" >&2
   exit 1
